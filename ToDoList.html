@@ -28,6 +28,7 @@
         <div class="card-body">
           <input type="text" class="form-control mb-3" placeholder="Add a new task...">
           <input type="date" class="form-control mb-3">
+          <textarea class="form-control mb-3" placeholder="Add Task Notes..." rows="3"></textarea>
           <button class="btn btn-primary w-100">Add Task</button>
         </div>
       </div>
@@ -43,16 +44,24 @@
       <ul class="list-group">
 
         <!-- Task 1 -->
-        <li class="list-group-item d-flex justify-content-between align-items-center task-item"
+        <li class="list-group-item task-item"
             data-bs-toggle="tooltip"
             title="Task: Finish assignment | Due: April 5">
 
-          <div>
-            <p class="mb-1 fw-bold">Finish assignment</p>
-            <small class="text-muted">Due: April 5</small>
-          </div>
+          <!-- WHOLE ROW IS CLICKABLE -->
+          <div class="d-flex justify-content-between align-items-center"
+              data-bs-toggle="collapse"
+              data-bs-target="#task1"
+              style="cursor: pointer;">
 
-          <div class="d-flex gap-2">
+            <div>
+              <p class="mb-1 fw-bold">Finish assignment</p>
+              <small class="text-muted">Due: April 5</small>
+            </div>
+
+            <div class="d-flex gap-2">
+            <!-- Edit Button -->
+            <button class="btn btn-outline-secondary btn-sm">✎</button>
             <!-- Dropdown -->
             <div class="dropdown">
               <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
@@ -77,22 +86,38 @@
                 </li>
               </ul>
             </div>
-
+            <!-- Delete Button -->
             <button class="btn btn-danger btn-sm">✕</button>
+            
+          </div>
+          </div>
+
+          <!-- COLLAPSIBLE CONTENT -->
+          <div id="task1" class="collapse mt-3">
+            <small>Really hard, give extra time</small>
           </div>
         </li>
 
         <!-- Task 2 -->
-        <li class="list-group-item d-flex justify-content-between align-items-center task-item"
+        <li class="list-group-item task-item"
             data-bs-toggle="tooltip"
             title="Task: Go to gym | Due: April 6">
 
-          <div>
-            <p class="mb-1 fw-bold">Go to gym</p>
-            <small class="text-muted">Due: April 6</small>
-          </div>
+          <!-- WHOLE ROW IS CLICKABLE -->
+          <div class="d-flex justify-content-between align-items-center"
+              data-bs-toggle="collapse"
+              data-bs-target="#task2"
+              style="cursor: pointer;">
 
-          <div class="d-flex gap-2">
+            <div>
+              <p class="mb-1 fw-bold">Go to gym</p>
+              <small class="text-muted">Due: April 6</small>
+            </div>
+
+            <div class="d-flex gap-2">
+            <!-- Edit Button -->
+            <button class="btn btn-outline-secondary btn-sm">✎</button>
+            <!-- Dropdown -->
             <div class="dropdown">
               <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                 Status
@@ -116,22 +141,38 @@
                 </li>
               </ul>
             </div>
-
+            <!-- Delete Button -->
             <button class="btn btn-danger btn-sm">✕</button>
+            
+          </div>
+          </div>
+
+          <!-- COLLAPSIBLE CONTENT -->
+          <div id="task2" class="collapse mt-3">
+            <small>Don Wanna</small>
           </div>
         </li>
 
         <!-- Task 3 -->
-        <li class="list-group-item d-flex justify-content-between align-items-center task-item"
+        <li class="list-group-item task-item"
             data-bs-toggle="tooltip"
             title="Task: Study for test | Due: April 3">
 
-          <div>
-            <p class="mb-1 fw-bold text-decoration-line-through text-muted">Study for test</p>
-            <small class="text-muted">Due: April 3</small>
-          </div>
+          <!-- WHOLE ROW IS CLICKABLE -->
+          <div class="d-flex justify-content-between align-items-center"
+              data-bs-toggle="collapse"
+              data-bs-target="#task3"
+              style="cursor: pointer;">
 
-          <div class="d-flex gap-2">
+            <div>
+              <p class="mb-1 fw-bold">Study for test</p>
+              <small class="text-muted">Due: April 3</small>
+            </div>
+
+            <div class="d-flex gap-2">
+            <!-- Edit Button -->
+            <button class="btn btn-outline-secondary btn-sm">✎</button>
+            <!-- Dropdown -->
             <div class="dropdown">
               <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
                 Status
@@ -155,8 +196,15 @@
                 </li>
               </ul>
             </div>
-
+            <!-- Delete Button -->
             <button class="btn btn-danger btn-sm">✕</button>
+            
+          </div>
+          </div>
+
+          <!-- COLLAPSIBLE CONTENT -->
+          <div id="task3" class="collapse mt-3">
+            <small>Super easy dont stress</small>
           </div>
         </li>
 
