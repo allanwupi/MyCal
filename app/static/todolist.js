@@ -96,6 +96,16 @@ document.addEventListener('DOMContentLoaded', function () {
       todoList.appendChild(li);
     });
 
+    todoList.querySelectorAll('.dropdown').forEach(dropdown => {
+      dropdown.addEventListener('show.bs.dropdown', () => {
+        dropdown.closest('.task-item')?.classList.add('dropdown-open');
+      });
+
+      dropdown.addEventListener('hide.bs.dropdown', () => {
+        dropdown.closest('.task-item')?.classList.remove('dropdown-open');
+      });
+    });
+
     //const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     //tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
   }

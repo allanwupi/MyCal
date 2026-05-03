@@ -467,6 +467,14 @@ input[type="file"]:focus {
   transition: 0.2s ease;
 }
 
+.task-item.dropdown-open {
+  margin-bottom: 6rem;
+}
+
+.task-item.dropdown-menu {
+  z-index: 1050;
+}
+
 .task-item:hover {
   background-color: #f8fbff;
   transform: translateY(-1px);
