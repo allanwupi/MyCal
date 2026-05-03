@@ -436,7 +436,7 @@ input[type="file"]:focus {
 
 .task-item:hover {
   background-color: #f8fbff;
-  transform: translateY(-1px);
+  /*transform: translateY(-1px);*/
 }
 
 .task-left p {
