@@ -1,0 +1,36 @@
+body {
+    background-color:aquamarine;
+    font-family: Arial, sans-serif;
+}
+
+.main-box {
+    margin-top: 40px;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #2c3e50;
+}
+
+.section {
+    margin-bottom: 40px;
+}
+
+.input-box {
+    margin-bottom: 15px;
+}
+
+table {
+    background-color: white;
+}
+.img-box{
+    background-attachment: fixed;
+    display: block;
+    margin: 0 auto;
+}
+.link{
+    display: block;
+    margin: 20px auto;
+    width: 200px;
+}

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Weekly Calendar</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+
+    <style> 
+    /* Move this to external CSS file later */
+      h1 {
+        text-align: center;
+      }
+      th {
+        text-align: center;
+        vertical-align: middle;
+      }
+      tr {
+        height: 4em;
+      }
+      .event1 {
+        background-color: rgb(154, 243, 243) !important;
+        border-left: solid 0.25em rgb(0, 203, 204) !important;
+        padding-left: 0.25em;
+      }
+      .event1:hover {
+        background-color: rgb(116, 241, 241) !important;
+        transition: background-color 0.3s ease;
+      }
+      .event2 {
+        background-color: rgb(203, 204, 254) !important;
+        border-left: solid 0.25em rgb(153, 155, 255) !important;
+      }
+      .event2:hover {
+        background-color: rgb(190, 191, 255) !important;
+        transition: background-color 0.3s ease;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <div class="container py-5">
+      <h1 class="h1 mb-4">Timetable</h1>
+      <div class="row justify-content-center">
+        <div class="col-2">
+          <div class="card mb-6 shadow-sm">
+            <div class="card-body">
+              <div class="btn-group mb-3" role="group">
+              <button class="btn btn-light">Prev</button>
+              <button class="btn btn-light">Next</button>
+              </div>
+              <div class="list-group">
+                <button type="button" class="list-group-item list-group-item-action active">Calendar 1</button>
+                <button type="button" class="list-group-item list-group-item-action">Calendar 2</button>
+                <button type="button" class="list-group-item list-group-item-action">Calendar 3</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-10">
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th colspan="1"  class="header" width="10%"></th>
+                  <th colspan="12" class="header" width="15%">Mon</th>
+                  <th colspan="12" class="header" width="15%">Tue</th>
+                  <th colspan="12" class="header" width="15%">Wed</th>
+                  <th colspan="12" class="header" width="15%">Thu</th>
+                  <th colspan="12" class="header" width="15%">Fri</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th colspan="1">All Day</th>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>  
+                  <td colspan="12"></td>  
+                </tr>
+                <tr>
+                  <th colspan="1">08:00</th>
+                  <td rowspan="2" colspan="12" class="event1">
+                    <p><strong>Event1</strong><br>Description</p>
+                  </td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                </tr>
+                <tr>
+                  <th colspan="1">09:00</th>
+                  <!--<td colspan="12"></td>-->
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="6" class="event1">
+                    <p><strong>Event</strong><br>Description</p>
+                  </td>
+                  <td rowspan="2" colspan="6" class="event1">
+                    <p><strong>Overlap</strong><br>Description</p>
+                  </td>
+                </tr>
+                <tr>
+                  <th colspan="1">10:00</th>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="6"></td>
+                </tr>
+                <tr>
+                  <th colspan="1">11:00</th>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                </tr>
+                <tr>
+                  <th colspan="1">12:00</th>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                </tr>
+                <tr>
+                  <th colspan="1">13:00</th>
+                  <td colspan="12"></td>
+                  <td rowspan="3" colspan="12" class="event2">
+                    <p><strong>Event2</strong><br>Description</p>
+                  </td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                </tr>
+                <tr>
+                  <th colspan="1">14:00</th>
+                  <td colspan="12"></td>
+                  <!--<td colspan="12"></td>-->
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                </tr>
+                <tr>
+                  <th colspan="1">15:00</th>
+                  <td colspan="12"></td>
+                  <!--<td colspan="12"></td>-->
+                  <td colspan="12"></td>
+                  <td rowspan="2" colspan="3" class="event2">
+                    <p><strong>A</strong><br>Text</p>
+                  </td>
+                  <td rowspan="2" colspan="3" class="event2">
+                    <p><strong>B</strong><br>Text</p>
+                  </td>
+                  <td rowspan="2" colspan="3" class="event2">
+                    <p><strong>C</strong><br>Text</p>
+                  </td>
+                  <td rowspan="2" colspan="3" class="event2">
+                    <p><strong>D</strong><br>Text</p>
+                  </td>
+                  <td colspan="12"></td>
+                </tr>
+                <tr>
+                  <th colspan="1">16:00</th>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <!--<td colspan="12"></td>-->
+                  <td colspan="12"></td>
+                </tr>
+                <tr>
+                  <th colspan="1">17:00</th>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                </tr>
+                <tr>
+                  <th colspan="1">18:00</th>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                  <td colspan="12"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+  </body>
+</html>

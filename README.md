@@ -17,7 +17,14 @@ A web app developed for the CITS3403 Agile Web Development group project. This i
 ## Instructions
 
 ### Launching the App
-Not done yet
+Clone this repository to your local machine, create a Python virtual environment and run Flask.
+
+```python
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+flask run
+```
 
 ### Tests
 Not done yet
