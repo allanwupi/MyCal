@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const addEventModal = new bootstrap.Modal(addEventModalElement);
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
+    fixedWeekCount: false,
     initialView: 'dayGridMonth',
     height: 'auto',
     headerToolbar: {
