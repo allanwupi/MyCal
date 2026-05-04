@@ -25,38 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     selectable: true,
     editable: true,
     nowIndicator: true,
-    events: [
-      {
-        title: 'Assignment Due',
-        start: '2026-04-25T14:00:00',
-        end: '2026-04-25T16:00:00',
-        backgroundColor: '#6366f1',
-        extendedProps: {
-          location: 'UWA Library',
-          description: 'Complete and submit the final assignment.'
-        }
-      },
-      {
-        title: 'Group Meeting',
-        start: '2026-04-23T10:00:00',
-        end: '2026-04-23T11:00:00',
-        backgroundColor: '#3b82f6',
-        extendedProps: {
-          location: 'Engineering Building',
-          description: 'Project discussion with team members.'
-        }
-      },
-      {
-        title: 'Gym Session',
-        start: '2026-04-22T18:00:00',
-        end: '2026-04-22T19:30:00',
-        backgroundColor: '#8b5cf6',
-        extendedProps: {
-          location: 'Campus Gym',
-          description: 'Strength workout and cardio session.'
-        }
-      }
-    ],
+    events: '/get-events',
 
     eventMouseEnter: function(info) {
       const event = info.event;
@@ -110,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const location = eventLocationInput.value.trim();
     const description = eventDescriptionInput.value.trim();
 
+    // Client-side validation
     if (!title || !start) {
       alert('Please enter at least an event title and start date/time.');
       return;
@@ -120,17 +90,52 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    calendar.addEvent({
-      title: title,
-      start: start,
-      end: end || null,
-      backgroundColor: '#6366f1',
-      extendedProps: {
-        location: location || 'No location provided',
-        description: description || 'No details provided'
-      }
-    });
+    // Disable button during submission
+    saveEventBtn.disabled = true;
+    saveEventBtn.textContent = 'Saving...';
 
-    addEventModal.hide();
+    // Send to server for validation and storage
+    fetch('/save-event', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: title,
+        start: start,
+        end: end || null,
+        location: location,
+        description: description,
+        backgroundColor: '#6366f1'
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to save event');
+        });
+      }
+      return response.json();
+    })
+    .then(eventData => {
+      // Server validation passed, add to calendar
+      calendar.addEvent({
+        id: eventData.id,
+        title: eventData.title,
+        start: eventData.start,
+        end: eventData.end,
+        backgroundColor: eventData.backgroundColor,
+        extendedProps: eventData.extendedProps
+      });
+      addEventModal.hide();
+    })
+    .catch(error => {
+      alert('Error saving event: ' + error.message);
+    })
+    .finally(() => {
+      // Re-enable button
+      saveEventBtn.disabled = false;
+      saveEventBtn.textContent = 'Save Event';
+    });
   });
 });
