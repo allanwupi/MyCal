@@ -34,25 +34,25 @@
 	  <!-- Sidebar with navigation links, shared across pages -->
       <ul class="nav-links">
         <li data-section="calendar-section">
-		  <a class={{calendar_active}} href="calendar">
-			<span class="nav-icon">📅</span>
-			<span class="label">Calendar</span>
+          <a {% if calendar_active is defined %} class="active" {% endif %} href="calendar">
+          <span class="nav-icon">📅</span>
+          <span class="label">Calendar</span>
           </a>
         </li>
         <li data-section="todo-section">
-          <a class={{todo_active}} href="todo">
+          <a {% if todo_active is defined %} class="active" {% endif %} href="todo">
             <span class="nav-icon">✅</span>
             <span class="label">To-do List</span>
           </a>
         </li>
         <li data-section="friends-section">
-          <a class={{friends_active}} href="friends">
+          <a {% if friends_active is defined %} class="active" {% endif %} href="friends">
             <span class="nav-icon">👥</span>
             <span class="label">Friends</span>
           </a>
         </li>
         <li data-section="import-section">
-          <a class={{import_active}} href="import">
+          <a {% if import_active is defined %} class="active" {% endif %} href="import">
             <span class="nav-icon">📥</span>
             <span class="label">Import Calendar</span>
           </a>
