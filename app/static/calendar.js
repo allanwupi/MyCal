@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function () {
     saveEventBtn.textContent = 'Saving...';
 
     // Send to server for validation and storage
-    fetch('/save-event', {
+    fetch('/save/event', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

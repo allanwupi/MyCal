@@ -9,7 +9,7 @@
 <div class="glass-card">
   <div class="todo-input-row">
     <input type="text" id="todoInput" placeholder="Add a new task..." />
-    <input type="date" id="todoDate" />
+    <input type="datetime-local" id="todoDate"/>
     <button class="primary-btn" id="addTodoBtn">Add Task</button>
   </div>
 
@@ -19,7 +19,45 @@
     <button class="btn" data-filter="completed">Completed</button>
   </div>
 
-  <ul class="todo-list" id="todoList"></ul>
+  <ul class="todo-list" id="todoList">
+    {% for task in tasks %}
+      {% set task_status = task.taskStatus or 'Not Started' %}
+      <li
+        class="task-item d-flex justify-content-between align-items-center"
+        data-task-id="{{ task.id }}"
+        data-status="{{ task_status }}"
+        data-due-date="{{ task.start.isoformat() }}"
+        data-title="{{ task.title|e }}"
+        data-location="{{ (task.location or '')|e }}"
+        data-description="{{ (task.description or '')|e }}"
+      >
+        <div class="task-left">
+          <p class="fw-bold {% if task_status == 'Completed' %}text-decoration-line-through text-muted{% endif %}">
+            {{ task.title }}
+          </p>
+          <small>Due: {{ task.start.strftime('%b %-d, %Y %-I:%M %p') }}</small>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center flex-wrap justify-content-end">
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle rounded-pill px-3" data-bs-toggle="dropdown">
+              Status
+            </button>
+            <ul class="dropdown-menu shadow border-0 rounded-4 p-2">
+              <li><a class="dropdown-item rounded-3 status-option" href="#" data-id="{{ task.id }}" data-status="Not Started"><span class="badge bg-info text-dark">Not Started</span></a></li>
+              <li><a class="dropdown-item rounded-3 status-option" href="#" data-id="{{ task.id }}" data-status="In Progress"><span class="badge bg-warning text-dark">In Progress</span></a></li>
+              <li><a class="dropdown-item rounded-3 status-option" href="#" data-id="{{ task.id }}" data-status="Completed"><span class="badge bg-success">Completed</span></a></li>
+            </ul>
+          </div>
+
+          <span class="task-status-badge {% if task_status == 'Not Started' %}bg-info text-dark{% elif task_status == 'In Progress' %}bg-warning text-dark{% elif task_status == 'Completed' %}bg-success{% else %}bg-secondary{% endif %}">{{ task_status }}</span>
+          <button class="btn btn-danger btn-sm rounded-pill px-3 delete-task" data-id="{{ task.id }}">Delete</button>
+        </div>
+      </li>
+    {% else %}
+      <li class="empty-state">No tasks found.</li>
+    {% endfor %}
+  </ul>
 </div>
 {% endblock %}
 {% block javascript %}

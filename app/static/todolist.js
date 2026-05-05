@@ -5,38 +5,21 @@ document.addEventListener('DOMContentLoaded', function () {
   const todoList = document.getElementById('todoList');
   const filterButtons = document.querySelectorAll('.filter-buttons button');
 
-  // TODO: BACKEND
-  let tasks = [
-    {
-      id: 1,
-      title: 'Finish assignment',
-      dueDate: '2026-04-25',
-      status: 'In Progress'
-    },
-    {
-      id: 2,
-      title: 'Go to gym',
-      dueDate: '2026-04-22',
-      status: 'Not Started'
-    },
-    {
-      id: 3,
-      title: 'Study for test',
-      dueDate: '2026-04-20',
-      status: 'Completed'
-    }
-  ];
-
   let currentFilter = 'all';
 
   function formatDate(dateString) {
     if (!dateString) return 'No due date';
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString([], {
+    const date = new Date(dateString);
+    const datePart = date.toLocaleDateString([], {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
+    const timePart = date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return `${datePart} ${timePart}`;
   }
 
   function getBadgeClass(status) {
@@ -46,29 +29,49 @@ document.addEventListener('DOMContentLoaded', function () {
     return 'bg-secondary';
   }
 
-  function renderTasks() {
-    todoList.innerHTML = '';
+  function getTaskItems() {
+    return Array.from(todoList.querySelectorAll('.task-item'));
+  }
 
-    let filteredTasks = tasks;
+  function setEmptyState() {
+    const taskItems = getTaskItems();
+    const visibleTaskItems = taskItems.filter(taskItem => !taskItem.classList.contains('d-none'));
+    const emptyState = todoList.querySelector('.empty-state');
 
-    if (currentFilter === 'pending') {
-      filteredTasks = tasks.filter(task => task.status !== 'Completed');
-    } else if (currentFilter === 'completed') {
-      filteredTasks = tasks.filter(task => task.status === 'Completed');
-    }
-
-    if (filteredTasks.length === 0) {
-      todoList.innerHTML = '<li class="empty-state">No tasks found.</li>';
+    if (visibleTaskItems.length === 0) {
+      if (!emptyState) {
+        const emptyItem = document.createElement('li');
+        emptyItem.className = 'empty-state';
+        emptyItem.textContent = 'No tasks found.';
+        todoList.appendChild(emptyItem);
+      }
       return;
     }
 
-    filteredTasks.forEach(task => {
-      const li = document.createElement('li');
-      li.className = 'task-item d-flex justify-content-between align-items-center';
-      li.setAttribute('data-bs-toggle', 'tooltip');
-      li.setAttribute('title', `Task: ${task.title} | Due: ${formatDate(task.dueDate)} | Status: ${task.status}`);
+    if (emptyState && taskItems.length > 0) {
+      emptyState.remove();
+    }
+  }
 
-      li.innerHTML = `
+  function wireDropdown(dropdown) {
+    dropdown.addEventListener('show.bs.dropdown', () => {
+      dropdown.closest('.task-item')?.classList.add('dropdown-open');
+    });
+
+    dropdown.addEventListener('hide.bs.dropdown', () => {
+      dropdown.closest('.task-item')?.classList.remove('dropdown-open');
+    });
+  }
+
+  function createTaskItem(task) {
+    const li = document.createElement('li');
+    li.className = 'task-item d-flex justify-content-between align-items-center';
+    li.dataset.taskId = task.id;
+    li.dataset.status = task.status;
+    li.dataset.dueDate = task.dueDate || '';
+    li.dataset.title = task.title;
+
+    li.innerHTML = `
         <div class="task-left">
           <p class="fw-bold ${task.status === 'Completed' ? 'text-decoration-line-through text-muted' : ''}">
             ${task.title}
@@ -93,21 +96,31 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
       `;
 
-      todoList.appendChild(li);
+    wireDropdown(li.querySelector('.dropdown'));
+    return li;
+  }
+
+  function applyFilter() {
+    const taskItems = getTaskItems();
+
+    taskItems.forEach(taskItem => {
+      const status = taskItem.dataset.status;
+      let visible = true;
+
+      if (currentFilter === 'pending') {
+        visible = status !== 'Completed';
+      } else if (currentFilter === 'completed') {
+        visible = status === 'Completed';
+      }
+
+      if (visible) {
+        taskItem.classList.remove('d-none');
+      } else {
+        taskItem.classList.add('d-none');
+      }
     });
 
-    todoList.querySelectorAll('.dropdown').forEach(dropdown => {
-      dropdown.addEventListener('show.bs.dropdown', () => {
-        dropdown.closest('.task-item')?.classList.add('dropdown-open');
-      });
-
-      dropdown.addEventListener('hide.bs.dropdown', () => {
-        dropdown.closest('.task-item')?.classList.remove('dropdown-open');
-      });
-    });
-
-    //const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    //tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+    setEmptyState();
   }
 
   addTodoBtn.addEventListener('click', () => {
@@ -119,36 +132,144 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
+    if (!dueDate) {
+      alert('Please set a due date.');
+      return;
+    }
+
+    const emptyState = todoList.querySelector('.empty-state');
+    if (emptyState) {
+      emptyState.remove();
+    }
+
+    // Disable the button while saving
+    addTodoBtn.disabled = true;
+
     const newTask = {
-      id: Date.now(),
       title: title,
       dueDate: dueDate,
-      status: 'Not Started'
+      taskStatus: 'Not Started'
     };
 
-    tasks.push(newTask);
-    todoInput.value = '';
-    todoDate.value = '';
-    renderTasks();
+    fetch('/save/task', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(newTask)
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to save task');
+        });
+      }
+      return response.json();
+    })
+    .then(savedTask => {
+      // Create task item with the saved data (includes server-generated ID)
+      const taskItem = createTaskItem({
+        id: savedTask.id,
+        title: savedTask.title,
+        dueDate: savedTask.start,
+        status: savedTask.extendedProps.taskStatus
+      });
+      todoList.appendChild(taskItem);
+      todoInput.value = '';
+      todoDate.value = '';
+      applyFilter();
+    })
+    .catch(error => {
+      alert('Error adding task: ' + error.message);
+    })
+    .finally(() => {
+      addTodoBtn.disabled = false;
+    });
   });
 
   todoList.addEventListener('click', (e) => {
     if (e.target.closest('.delete-task')) {
-      const id = Number(e.target.closest('.delete-task').dataset.id);
-      tasks = tasks.filter(task => task.id !== id);
-      renderTasks();
+      const button = e.target.closest('.delete-task');
+      const taskItem = button.closest('.task-item');
+      if (taskItem) {
+        const taskId = taskItem.dataset.taskId;
+        
+        // Disable the button while deleting
+        button.disabled = true;
+        
+        fetch('/delete-event', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id: taskId })
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.error || 'Failed to delete event');
+            });
+          }
+          return response.json();
+        })
+        .then(() => {
+          taskItem.remove();
+          applyFilter();
+        })
+        .catch(error => {
+          alert('Error deleting task: ' + error.message);
+          button.disabled = false;
+        });
+      }
     }
 
     if (e.target.closest('.status-option')) {
       e.preventDefault();
       const option = e.target.closest('.status-option');
-      const id = Number(option.dataset.id);
+      const taskItem = option.closest('.task-item');
       const newStatus = option.dataset.status;
 
-      const task = tasks.find(task => task.id === id);
-      if (task) {
-        task.status = newStatus;
-        renderTasks();
+      if (taskItem) {
+        const taskId = taskItem.dataset.taskId;
+        const statusButton = taskItem.querySelector('.dropdown-toggle');
+
+        fetch('/update-task-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ id: taskId, status: newStatus })
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.error || 'Failed to update task status');
+            });
+          }
+          return response.json();
+        })
+        .then(updatedTask => {
+          // Update the task item with the new status
+          taskItem.dataset.status = newStatus;
+
+          const titleElement = taskItem.querySelector('.task-left p');
+          const statusBadge = taskItem.querySelector('.task-status-badge');
+
+          if (titleElement) {
+            titleElement.classList.toggle('text-decoration-line-through', newStatus === 'Completed');
+            titleElement.classList.toggle('text-muted', newStatus === 'Completed');
+          }
+
+          if (statusBadge) {
+            statusBadge.className = `task-status-badge ${getBadgeClass(newStatus)}`;
+            statusBadge.textContent = newStatus;
+          }
+
+          applyFilter();
+        })
+        .catch(error => {
+          alert('Error updating task status: ' + error.message);
+        });
       }
     }
   });
@@ -158,9 +279,10 @@ document.addEventListener('DOMContentLoaded', function () {
       filterButtons.forEach(btn => btn.classList.remove('active-filter'));
       button.classList.add('active-filter');
       currentFilter = button.dataset.filter;
-      renderTasks();
+      applyFilter();
     });
   });
 
-  renderTasks();
+  todoList.querySelectorAll('.dropdown').forEach(wireDropdown);
+  applyFilter();
 });

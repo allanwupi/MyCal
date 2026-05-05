@@ -383,7 +383,7 @@ html.sidebar-collapsed .sidebar .brand {
 }
 
 input[type="text"],
-input[type="date"],
+input[type="datetime-local"],
 input[type="file"] {
   padding: 12px 14px;
   border: 1px solid #d8e1ee;
@@ -397,7 +397,7 @@ input[type="file"] {
 }
 
 input[type="text"]:focus,
-input[type="date"]:focus,
+input[type="datetime-local"]:focus,
 input[type="file"]:focus {
   border-color: #93c5fd;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.10);
@@ -407,7 +407,7 @@ input[type="file"]:focus {
   flex: 2;
 }
 
-.todo-input-row input[type="date"] {
+.todo-input-row input[type="datetime-local"] {
   flex: 1;
 }
 

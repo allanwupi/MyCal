@@ -11,7 +11,7 @@ class User(db.Model):
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
-    start = db.Column(db.DateTime, nullable=False)
+    start = db.Column(db.DateTime, nullable=False)  # For tasks, treat the start datetime as the due date and time
     end = db.Column(db.DateTime, nullable=False)
     backgroundColor = db.Column(db.String(20), nullable=True)
     location = db.Column(db.String(200), nullable=True)
@@ -38,37 +38,49 @@ class Event(db.Model):
 
 
 def create_test_data():
-    event1 = Event(
+    task1 = Event(
         id=1,
         title='Assignment Due',
         start=datetime(2026, 4, 25, 14, 0, 0),
-        end=datetime(2026, 4, 25, 16, 0, 0),
+        end=datetime(2026, 4, 25, 14, 0, 0),
         backgroundColor='#6366f1',
         location='UWA Library',
         description='Complete and submit the final assignment.',
         isTask=True,
         taskStatus='Completed'
     )
-    event2 = Event(
+    task2 = Event(
         id=2,
+        title='Gym Session',
+        start=datetime(2026, 4, 22, 18, 0, 0),
+        end=datetime(2026, 4, 22, 14, 0, 0),
+        backgroundColor='#6366f1',
+        location='Campus Gym',
+        description='Strength workout and cardio session.',
+        isTask=True,
+        taskStatus='Not Started'
+    )
+    task3 = Event(
+        id=3,
+        title='Study for Test',
+        start=datetime(2026, 4, 20, 9, 0, 0),
+        end=datetime(2026, 4, 20, 9, 0, 0),
+        backgroundColor='#6366f1',
+        location='Home',
+        description='Review lecture notes and practice problems.',
+        isTask=True,
+        taskStatus='In Progress'
+    )
+    event1 = Event(
+        id=4,
         title='Group Meeting',
         start=datetime(2026, 4, 23, 10, 0, 0),
         end=datetime(2026, 4, 23, 11, 0, 0),
-        backgroundColor='#3b82f6',
+        backgroundColor='#6366f1',
         location='Engineering Building',
         description='Project discussion with team members.',
         isTask=False
     )
-    event3 = Event(
-        id=3,
-        title='Gym Session',
-        start=datetime(2026, 4, 22, 18, 0, 0),
-        end=datetime(2026, 4, 22, 19, 30, 0),
-        backgroundColor='#8b5cf6',
-        location='Campus Gym',
-        description='Strength workout and cardio session.',
-        isTask=False
-    )
-    events = [event1, event2, event3]
+    events = [task1, task2, task3, event1]
     db.session.add_all(events)
     db.session.commit()
