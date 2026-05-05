@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}Import Calendar{% endblock %}
+{% block head %} {% endblock %}
+{% block content %}
+<div class="section-title">
+  <h2>Import Calendar</h2>
+  <p>Upload calendar files so events can be added into your app later.</p>
+</div>
+<div class="glass-card">
+  <div class="import-row">
+    <input type="file" id="calendarFile" accept=".ics" />
+    <button class="primary-btn" type="button">Upload</button>
+  </div>
+
+  <div class="import-box">
+    <h4>Import an .ics calendar file</h4>
+    <p>
+      Use this section to upload timetable, meeting, or event files. Later, this
+      can be connected to your FullCalendar event data.
+    </p>
+  </div>
+</div>
+{% endblock %}
+{% block javascript %}
+
+{% endblock %}

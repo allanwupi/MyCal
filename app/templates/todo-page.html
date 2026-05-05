@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% block title %}To-Do List{% endblock %}
+{% block head %} {% endblock %}
+{% block content %}
+<div class="section-title">
+  <h2>To-do List</h2>
+  <p>Add tasks, set due dates, update progress, and filter what you see.</p>
+</div>
+<div class="glass-card">
+  <div class="todo-input-row">
+    <input type="text" id="todoInput" placeholder="Add a new task..." />
+    <input type="date" id="todoDate" />
+    <button class="primary-btn" id="addTodoBtn">Add Task</button>
+  </div>
+
+  <div class="filter-buttons">
+    <button class="btn active-filter" data-filter="all">All</button>
+    <button class="btn" data-filter="pending">Pending</button>
+    <button class="btn" data-filter="completed">Completed</button>
+  </div>
+
+  <ul class="todo-list" id="todoList"></ul>
+</div>
+{% endblock %}
+{% block javascript %}
+  <script src="{{ url_for('static', filename='todolist.js') }}"></script>
+{% endblock %}
