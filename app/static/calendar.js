@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const eventEndInput = document.getElementById('eventEnd');
   const eventLocationInput = document.getElementById('eventLocation');
   const eventDescriptionInput = document.getElementById('eventDescription');
+  const eventIsTaskInput = document.getElementById('eventIsTask');
 
   const addEventModalElement = document.getElementById('addEventModal');
   const addEventModal = new bootstrap.Modal(addEventModalElement);
@@ -78,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const end = eventEndInput.value;
     const location = eventLocationInput.value.trim();
     const description = eventDescriptionInput.value.trim();
+    const isTask = eventIsTaskInput.checked;
 
     // Client-side validation
     if (!title || !start) {

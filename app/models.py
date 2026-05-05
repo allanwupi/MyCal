@@ -2,6 +2,13 @@ from app import db
 from datetime import datetime
 
 
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+
+
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
@@ -12,7 +19,7 @@ class Event(db.Model):
     description = db.Column(db.Text, nullable=True)
     isTask = db.Column(db.Boolean, default=False)
     taskStatus = db.Column(db.String(20), nullable=True)  # 'Not Started', 'In Progress', 'Completed'
-    owner = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # For future user association
+    owner = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)  # For future user association
 
     def to_dict(self): # Converts event object to a dictionary for JSON serialization
         return {
@@ -29,13 +36,6 @@ class Event(db.Model):
                 'owner': self.owner
             }
         }
-
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
 
 
 def create_test_data():
