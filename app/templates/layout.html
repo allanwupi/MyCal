@@ -34,25 +34,25 @@
 	  <!-- Sidebar with navigation links, shared across pages -->
       <ul class="nav-links">
         <li data-section="calendar-section">
-          <a {% if calendar_active is defined %} class="active" {% endif %} href="calendar">
+          <a {% if calendar_active is defined %} class="active" {% endif %} href="{{ url_for('calendar') }}">
           <span class="nav-icon">📅</span>
           <span class="label">Calendar</span>
           </a>
         </li>
         <li data-section="todo-section">
-          <a {% if todo_active is defined %} class="active" {% endif %} href="todo">
+          <a {% if todo_active is defined %} class="active" {% endif %} href="{{ url_for('to_do_list') }}">
             <span class="nav-icon">✅</span>
             <span class="label">To-do List</span>
           </a>
         </li>
         <li data-section="friends-section">
-          <a {% if friends_active is defined %} class="active" {% endif %} href="friends">
+          <a {% if friends_active is defined %} class="active" {% endif %} href="{{ url_for('friends') }}">
             <span class="nav-icon">👥</span>
             <span class="label">Friends</span>
           </a>
         </li>
         <li data-section="import-section">
-          <a {% if import_active is defined %} class="active" {% endif %} href="import">
+          <a {% if import_active is defined %} class="active" {% endif %} href="{{ url_for('imported_calendars') }}">
             <span class="nav-icon">📥</span>
             <span class="label">Import Calendar</span>
           </a>
@@ -66,7 +66,26 @@
           <h1>My Dashboard</h1>
           <p>Manage your schedule, tasks, friends, and imported calendars in one place.</p>
         </div>
+        <div class="user-menu">
+          <div class="user-chip">
+            <span>{{ current_user.username }}</span>
+            <small>{{ current_user.email }}</small>
+          </div>
+          <form method="POST" action="{{ url_for('logout') }}">
+            <button class="logout-btn" type="submit">Logout</button>
+          </form>
+        </div>
       </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} rounded-4 py-2 mb-2" role="alert">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
       <div id="content">{% block content %}{% endblock %}</div>
 	  </main>
 
