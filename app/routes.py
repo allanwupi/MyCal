@@ -41,22 +41,25 @@ def save_event_task(dtype):
     """Save a new event or task to the database with server-side validation."""
     try:
         data = request.get_json()
-        
+        id = data.get('id', db.session.query(Event).all().count() + 1)  # Generate a new ID if not provided
         if (dtype == 'task'):
-            if not data.get('end'):
+            if not data.get('start'):
                 return jsonify({'error': 'Due date is required for tasks'}), 400
             try:
                 from datetime import datetime
-                end = datetime.fromisoformat(data['end'])
+                # FullCalendar will not store the end date for tasks, so we must access the start date
+                # This is the same as the end date for tasks which we define as only having a due date
+                end = datetime.fromisoformat(data['start'])
             except (ValueError, TypeError):
                 return jsonify({'error': 'Invalid date/time format for due date'}), 400
             
-            status = data.get('taskStatus')
+            status = data.get('taskStatus', data.get('extendedProps', {}).get('taskStatus'))
             valid_statuses = [status.value for status in TaskStatus]
             if status not in valid_statuses:
-                return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
+                return jsonify({'error': f'Invalid status {status}. Must be one of: {", ".join(valid_statuses)}'}), 400
             
             event = Event(
+                id=id,
                 title=data['title'].strip(),
                 start=end,
                 end=end,  # For tasks, start and end are the same (the due date)
@@ -84,13 +87,14 @@ def save_event_task(dtype):
                 return jsonify({'error': 'Invalid date/time format'}), 400
             
             event = Event(
+                id=id,
                 title=data['title'].strip(),
                 start=start,
-                end=end or start,  # Default end to start if not provided
+                end=end,
                 backgroundColor=data.get('backgroundColor', '#6366f1'),
                 location=data.get('location', '').strip() or None,
                 description=data.get('description', '').strip() or None
-            )  
+            )
         else:
             return jsonify({'error': f'Invalid data type: {dtype}'}), 400
         db.session.add(event)
@@ -141,6 +145,7 @@ def delete():
     try:
         data = request.get_json()
         event_id = data.get('id')
+        print(event_id)
         
         if not event_id:
             return jsonify({'error': 'Event ID is required'}), 400

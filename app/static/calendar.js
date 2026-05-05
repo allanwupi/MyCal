@@ -29,6 +29,47 @@ document.addEventListener('DOMContentLoaded', function () {
     nowIndicator: true,
     events: '/get-events',
 
+    // Allow user to drag, drop and resize events on the calendar, updating the database.
+    eventChange: function(changeInfo) {
+      const isTask = changeInfo.event.extendedProps.isTask;
+      let route = isTask ? '/save/task' : '/save/event';
+      // console.log(JSON.stringify(changeInfo.event));
+      fetch('/delete-event', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({'id': changeInfo.event.id})
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.error || 'Failed to remove event!');
+          });
+        }
+      })
+      .catch(error => {
+        alert('Error deleting event: ' + error.message);
+      });
+      fetch(route, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(changeInfo.event)
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.error || 'Failed to save event');
+          });
+        }
+      })
+      .catch(error => {
+        alert('Error saving event: ' + error.message);
+      });
+    },
+
     eventMouseEnter: function(info) {
       const event = info.event;
 
@@ -102,8 +143,8 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    if (end < start) {
-      alert('End date/time cannot be before the start date/time.');
+    if (!isTask && end <= start) {
+      alert('End date/time must be after the start date/time.');
       return;
     }
 
@@ -112,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
     saveEventBtn.textContent = 'Saving...';
 
     // Send to server for validation and storage
-    route = isTask ? '/save/task' : '/save/event';
+    let route = isTask ? '/save/task' : '/save/event';
     fetch(route, {
       method: 'POST',
       headers: {
