@@ -144,19 +144,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Disable the button while saving
     addTodoBtn.disabled = true;
-
-    const newTask = {
-      title: title,
-      dueDate: dueDate,
-      taskStatus: 'Not Started'
-    };
-
+  
     fetch('/save/task', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(newTask)
+      body: JSON.stringify({
+        title: title,
+        start: dueDate,
+        end: dueDate,
+        backgroundColor: '#6366f1',
+        isTask: true,
+        taskStatus: 'Not Started'
+      })
     })
     .then(response => {
       if (!response.ok) {
@@ -171,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const taskItem = createTaskItem({
         id: savedTask.id,
         title: savedTask.title,
-        dueDate: savedTask.start,
+        dueDate: savedTask.end,
         status: savedTask.extendedProps.taskStatus
       });
       todoList.appendChild(taskItem);

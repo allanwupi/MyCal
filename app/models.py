@@ -59,17 +59,6 @@ def create_test_data():
     )
     task2 = Event(
         id=2,
-        title='Gym Session',
-        start=datetime(2026, 4, 22, 18, 0, 0),
-        end=datetime(2026, 4, 22, 14, 0, 0),
-        backgroundColor='#6366f1',
-        location='Campus Gym',
-        description='Strength workout and cardio session.',
-        isTask=True,
-        taskStatus=TaskStatus.NOT_STARTED
-    )
-    task3 = Event(
-        id=3,
         title='Study for Test',
         start=datetime(2026, 4, 20, 9, 0, 0),
         end=datetime(2026, 4, 20, 9, 0, 0),
@@ -80,6 +69,15 @@ def create_test_data():
         taskStatus=TaskStatus.IN_PROGRESS
     )
     event1 = Event(
+        id=3,
+        title='Gym Session',
+        start=datetime(2026, 4, 22, 16, 0, 0),
+        end=datetime(2026, 4, 22, 18, 0, 0),
+        backgroundColor='#6366f1',
+        location='Campus Gym',
+        description='Strength workout and cardio session.'
+    )
+    event2 = Event(
         id=4,
         title='Group Meeting',
         start=datetime(2026, 4, 23, 10, 0, 0),
@@ -89,6 +87,6 @@ def create_test_data():
         description='Project discussion with team members.',
         isTask=False
     )
-    events = [task1, task2, task3, event1]
+    events = [task1, task2, event1, event2]
     db.session.add_all(events)
     db.session.commit()

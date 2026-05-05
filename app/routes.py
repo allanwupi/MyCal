@@ -2,6 +2,7 @@ from flask import render_template, jsonify, request, url_for, redirect
 from app import app, db
 from app.models import Event, TaskStatus
 
+
 @app.route('/', methods=['GET']) # Replace this with a login page later
 @app.route('/calendar', methods=['GET'])
 def calendar():
@@ -42,38 +43,42 @@ def save_event_task(dtype):
         data = request.get_json()
         
         if (dtype == 'task'):
-            # For tasks, we expect a dueDate instead of start/end
-            if not data.get('dueDate'):
+            if not data.get('end'):
                 return jsonify({'error': 'Due date is required for tasks'}), 400
-            
             try:
                 from datetime import datetime
-                due_date = datetime.fromisoformat(data['dueDate'])
+                end = datetime.fromisoformat(data['end'])
             except (ValueError, TypeError):
                 return jsonify({'error': 'Invalid date/time format for due date'}), 400
             
+            status = data.get('taskStatus')
+            valid_statuses = [status.value for status in TaskStatus]
+            if status not in valid_statuses:
+                return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
+            
             event = Event(
                 title=data['title'].strip(),
-                start=due_date,
-                end=due_date,  # For tasks, end equals start
+                start=end,
+                end=end,  # For tasks, start and end are the same (the due date)
                 backgroundColor=data.get('backgroundColor', '#6366f1'),
                 isTask=True,
-                taskStatus=TaskStatus(data.get('taskStatus', 'Not Started'))
+                taskStatus=TaskStatus(status)
             )
-        else: # Create a regular event
+        elif (dtype == 'event'): # Create a regular event
             # Server-side validation for events
             if not data.get('title') or not data['title'].strip():
                 return jsonify({'error': 'Event title is required'}), 400
-            
             if not data.get('start'):
                 return jsonify({'error': 'Start date/time is required'}), 400
+            if not data.get('end'):
+                return jsonify({'error': 'End date/time is required'}), 400
             
             try:
                 from datetime import datetime
                 start = datetime.fromisoformat(data['start'])
-                end = datetime.fromisoformat(data['end']) if data.get('end') else None
+                end = datetime.fromisoformat(data['end'])
                 
-                if end and end < start:
+                if end < start:
                     return jsonify({'error': 'End date/time cannot be before start date/time'}), 400
             except (ValueError, TypeError):
                 return jsonify({'error': 'Invalid date/time format'}), 400
@@ -86,13 +91,16 @@ def save_event_task(dtype):
                 location=data.get('location', '').strip() or None,
                 description=data.get('description', '').strip() or None
             )  
+        else:
+            return jsonify({'error': f'Invalid data type: {dtype}'}), 400
         db.session.add(event)
         db.session.commit()
         return jsonify(event.to_dict()), 201
     
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        print(e)
+        return jsonify({'error': f'Internal Server Error'}), 500
 
 
 @app.route('/update-task-status', methods=['POST'])
@@ -123,7 +131,8 @@ def update_task_status():
     
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        print(e)
+        return jsonify({'error': f'Internal Server Error'}), 500
 
 
 @app.route('/delete-event', methods=['POST'])
@@ -146,4 +155,5 @@ def delete():
     
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        print(e)
+        return jsonify({'error': f'Internal Server Error'}), 500

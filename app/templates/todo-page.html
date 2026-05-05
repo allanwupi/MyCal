@@ -21,12 +21,12 @@
 
   <ul class="todo-list" id="todoList">
     {% for task in tasks %}
-      {% set task_status = task.taskStatus.value or 'Not Started' %}
+      {% set task_status = task.taskStatus.value if task.taskStatus else 'Not Started' %}
       <li
         class="task-item d-flex justify-content-between align-items-center"
         data-task-id="{{ task.id }}"
         data-status="{{ task_status }}"
-        data-due-date="{{ task.start.isoformat() }}"
+        data-due-date="{{ task.end.isoformat() }}"
         data-title="{{ task.title|e }}"
         data-location="{{ (task.location or '')|e }}"
         data-description="{{ (task.description or '')|e }}"
@@ -35,7 +35,7 @@
           <p class="fw-bold {% if task_status == 'Completed' %}text-decoration-line-through text-muted{% endif %}">
             {{ task.title }}
           </p>
-          <small>Due: {{ task.start.strftime('%b %-d, %Y %-I:%M %p') }}</small>
+          <small>Due: {{ task.end.strftime('%b %-d, %Y %-I:%M %p') }}</small>
         </div>
 
         <div class="d-flex gap-2 align-items-center flex-wrap justify-content-end">
