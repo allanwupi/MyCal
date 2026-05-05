@@ -35,20 +35,28 @@ document.addEventListener('DOMContentLoaded', function () {
         ? event.start.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
         : 'N/A';
 
-      const end = event.end
+      const end = event.end // fullcalendar will set the end date to None if it is the same as the start date
         ? event.end.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
-        : 'N/A';
+        : start;
 
       const location = event.extendedProps.location || 'No location provided';
       const description = event.extendedProps.description || 'No description provided';
 
-      tooltip.innerHTML = `
+      if (event.extendedProps.isTask) {
+        tooltip.innerHTML = `
+          <strong>${event.title}</strong>
+          <div><span class="tooltip-label">Due:</span> ${end}</div> 
+          <div><span class="tooltip-label">Status:</span> ${event.extendedProps.taskStatus}</div>
+        `;
+      } else {
+        tooltip.innerHTML = `
         <strong>${event.title}</strong>
         <div><span class="tooltip-label">Start:</span> ${start}</div>
         <div><span class="tooltip-label">End:</span> ${end}</div>
         <div><span class="tooltip-label">Location:</span> ${location}</div>
         <div><span class="tooltip-label">Details:</span> ${description}</div>
       `;
+      }
       tooltip.style.display = 'block';
     },
 
@@ -73,6 +81,12 @@ document.addEventListener('DOMContentLoaded', function () {
     addEventModal.show();
   });
 
+  eventStartInput.addEventListener('input', () => {
+    if (!eventEndInput.value || eventEndInput.value < eventStartInput.value) {
+      eventEndInput.value = eventStartInput.value;
+    }
+  });
+
   saveEventBtn.addEventListener('click', () => {
     const title = eventTitleInput.value.trim();
     const start = eventStartInput.value;
@@ -82,12 +96,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const isTask = eventIsTaskInput.checked;
 
     // Client-side validation
-    if (!title || !start) {
-      alert('Please enter at least an event title and start date/time.');
+    if (!title || !start || !end) {
+      alert('Please enter the event title, start and end dates/times.');
       return;
     }
 
-    if (end && end < start) {
+    if (end < start) {
       alert('End date/time cannot be before the start date/time.');
       return;
     }
@@ -97,7 +111,8 @@ document.addEventListener('DOMContentLoaded', function () {
     saveEventBtn.textContent = 'Saving...';
 
     // Send to server for validation and storage
-    fetch('/save-event', {
+    route = isTask ? '/save/task' : '/save/event';
+    fetch(route, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -105,10 +120,12 @@ document.addEventListener('DOMContentLoaded', function () {
       body: JSON.stringify({
         title: title,
         start: start,
-        end: end || null,
+        end: end,
         location: location,
         description: description,
-        backgroundColor: '#6366f1'
+        backgroundColor: '#6366f1',
+        isTask: isTask,
+        taskStatus: isTask ? 'Not Started' : undefined
       })
     })
     .then(response => {
@@ -117,10 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
           throw new Error(data.error || 'Failed to save event');
         });
       }
-      return response.json();
-    })
-    .then(eventData => {
-      // Server validation passed, refetch events from database
+      // return response.json();
       calendar.refetchEvents();
       addEventModal.hide();
     })
