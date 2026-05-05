@@ -1,8 +1,10 @@
 from flask import render_template, jsonify, request, url_for, redirect
 from app import app, db
 from app.models import Event
+import icalendar
 
 @app.route('/', methods=['GET']) # Replace this with a login page later
+
 @app.route('/calendar', methods=['GET'])
 def calendar():
     return render_template('calendar-page.html', calendar_active=True)
@@ -23,6 +25,41 @@ def friends():
 @app.route('/import', methods=['GET'])
 def imported_calendars():
     return render_template('import-page.html', import_active=True)
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    file = request.files['file']
+
+    if not file or not file.filename.endswith('.ics'):
+        return {"error": "Invalid file"}, 400
+
+    cal = icalendar.Calendar.from_ical(file.read())
+    count = 0
+    seen = set()
+    events = []
+    for component in cal.walk():
+        if component.name == "VEVENT":
+
+            uid = str(component.get('uid'))
+
+            if uid in seen:
+                continue
+
+            seen.add(uid)
+
+            event = Event(
+                title=str(component.get('summary')),
+                start=component.get('dtstart').dt,
+                end=component.get('dtend').dt if component.get('dtend') else None
+            )
+
+            db.session.add(event)
+            events.append(event)
+            count += 1
+
+    db.session.commit()
+
+    return {"message": f"{count} events added"}
 
 @app.route('/save-event', methods=['POST'])
 def save_event():
