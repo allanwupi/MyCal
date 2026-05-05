@@ -120,15 +120,8 @@ document.addEventListener('DOMContentLoaded', function () {
       return response.json();
     })
     .then(eventData => {
-      // Server validation passed, add to calendar
-      calendar.addEvent({
-        id: eventData.id,
-        title: eventData.title,
-        start: eventData.start,
-        end: eventData.end,
-        backgroundColor: eventData.backgroundColor,
-        extendedProps: eventData.extendedProps
-      });
+      // Server validation passed, refetch events from database
+      calendar.refetchEvents();
       addEventModal.hide();
     })
     .catch(error => {
