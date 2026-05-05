@@ -42,13 +42,21 @@ document.addEventListener('DOMContentLoaded', function () {
       const location = event.extendedProps.location || 'No location provided';
       const description = event.extendedProps.description || 'No description provided';
 
-      tooltip.innerHTML = `
+      if (event.extendedProps.isTask) {
+        tooltip.innerHTML = `
+          <strong>${event.title}</strong>
+          <div><span class="tooltip-label">Task Due:</span> ${start}</div>
+          <div><span class="tooltip-label">Status:</span> ${event.extendedProps.taskStatus}</div>
+        `;
+      } else {
+        tooltip.innerHTML = `
         <strong>${event.title}</strong>
         <div><span class="tooltip-label">Start:</span> ${start}</div>
         <div><span class="tooltip-label">End:</span> ${end}</div>
         <div><span class="tooltip-label">Location:</span> ${location}</div>
         <div><span class="tooltip-label">Details:</span> ${description}</div>
       `;
+      }
       tooltip.style.display = 'block';
     },
 

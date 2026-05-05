@@ -7,10 +7,6 @@ from app.models import Event
 def calendar():
     return render_template('calendar-page.html', calendar_active=True)
 
-@app.route('/get-events', methods=['GET'])
-def get_events():
-    events = db.session.query(Event).all()
-    return jsonify([event.to_dict() for event in events]), 200
 
 @app.route('/todo', methods=['GET'])
 def to_do_list():
@@ -22,13 +18,22 @@ def to_do_list():
     )
     return render_template('todo-page.html', todo_active=True, tasks=tasks)
 
+
 @app.route('/friends', methods=['GET'])
 def friends():
     return render_template('friends-page.html', friends_active=True)
 
+
 @app.route('/import', methods=['GET'])
 def imported_calendars():
     return render_template('import-page.html', import_active=True)
+
+
+@app.route('/get-events', methods=['GET'])
+def get_events():
+    events = db.session.query(Event).all()
+    return jsonify([event.to_dict() for event in events]), 200
+
 
 @app.route('/save/<dtype>', methods=['POST'])
 def save_event_task(dtype):
@@ -89,41 +94,6 @@ def save_event_task(dtype):
         db.session.rollback()
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
-#@app.route('/save-task', methods=['POST'])
-#def save_task():
-#    """Save a new task to the database."""
-#    try:
-#        data = request.get_json()
-        
-#        # Server-side validation
-#        if not data.get('title') or not data['title'].strip():
-#            return jsonify({'error': 'Task title is required'}), 400
-        
-#        if not data.get('dueDate'):
-#            return jsonify({'error': 'Due date is required'}), 400
-        
-#        try:
-#            from datetime import datetime
-#            due_date = datetime.fromisoformat(data['dueDate'])
-#        except (ValueError, TypeError):
-#            return jsonify({'error': 'Invalid date/time format'}), 400
-        
-#        # Create and save the task
-#        task = Event(
-#            title=data['title'].strip(),
-#            start=due_date,
-#            end=due_date,  # For tasks, end equals start
-#            backgroundColor=data.get('backgroundColor', '#6366f1'),
-#            isTask=True,
-#            taskStatus=data.get('taskStatus', 'Not Started')
-#        )
-#        db.session.add(task)
-#        db.session.commit()
-#        return jsonify(task.to_dict()), 201
-    
-#    except Exception as e:
-#        db.session.rollback()
-#        return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 @app.route('/update-task-status', methods=['POST'])
 def update_task_status():
@@ -154,6 +124,7 @@ def update_task_status():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Server error: {str(e)}'}), 500
+
 
 @app.route('/delete-event', methods=['POST'])
 def delete():
