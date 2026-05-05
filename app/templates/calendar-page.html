@@ -32,7 +32,7 @@
   <div class="modal-dialog">
     <div class="modal-content rounded-4 border-0 shadow">
       <div class="modal-header">
-        <h5 class="modal-title" id="addEventModalLabel">Add Event</h5>
+        <h5 class="modal-title" id="addEventModalLabel">Add Event or Task</h5>
         <button
           type="button"
           class="btn-close"
@@ -48,7 +48,7 @@
             type="text"
             class="form-control"
             id="eventTitle"
-            placeholder="Enter event title"
+            placeholder="Enter event title (required)"
           />
         </div>
 
@@ -68,7 +68,7 @@
             type="text"
             class="form-control"
             id="eventLocation"
-            placeholder="Enter location"
+            placeholder="Enter location (optional)"
           />
         </div>
 
@@ -78,8 +78,17 @@
             class="form-control"
             id="eventDescription"
             rows="3"
-            placeholder="Enter event details"
+            placeholder="Enter event details (optional)"
           ></textarea>
+        </div>
+
+        <div class="mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="True" id="eventIsTask">
+            <label class="form-check-label" for="eventIsTask">
+              Add as Task (only due date will be saved)
+            </label>
+          </div>
         </div>
       </div>
 
