@@ -21,7 +21,7 @@
 
   <ul class="todo-list" id="todoList">
     {% for task in tasks %}
-      {% set task_status = task.taskStatus or 'Not Started' %}
+      {% set task_status = task.taskStatus.value or 'Not Started' %}
       <li
         class="task-item d-flex justify-content-between align-items-center"
         data-task-id="{{ task.id }}"

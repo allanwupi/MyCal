@@ -1,5 +1,13 @@
 from app import db
 from datetime import datetime
+import enum
+from sqlalchemy import Enum
+
+
+class TaskStatus(enum.Enum):
+    NOT_STARTED = 'Not Started'
+    IN_PROGRESS = 'In Progress'
+    COMPLETED = 'Completed'
 
 
 class User(db.Model):
@@ -17,7 +25,7 @@ class Event(db.Model):
     location = db.Column(db.String(200), nullable=True)
     description = db.Column(db.Text, nullable=True)
     isTask = db.Column(db.Boolean, default=False)
-    taskStatus = db.Column(db.String(20), nullable=True)  # 'Not Started', 'In Progress', 'Completed'
+    taskStatus = db.Column(Enum(TaskStatus), nullable=True)
     owner = db.Column(db.String(120), db.ForeignKey(User.email), nullable=True)  # For future user association
 
     def to_dict(self): # Converts event object to a dictionary for JSON serialization
@@ -31,7 +39,7 @@ class Event(db.Model):
                 'location': self.location,
                 'description': self.description,
                 'isTask': self.isTask,
-                'taskStatus': self.taskStatus,
+                'taskStatus': self.taskStatus.value if self.taskStatus else None,
                 'owner': self.owner
             }
         }
@@ -47,7 +55,7 @@ def create_test_data():
         location='UWA Library',
         description='Complete and submit the final assignment.',
         isTask=True,
-        taskStatus='Completed'
+        taskStatus=TaskStatus.COMPLETED
     )
     task2 = Event(
         id=2,
@@ -58,7 +66,7 @@ def create_test_data():
         location='Campus Gym',
         description='Strength workout and cardio session.',
         isTask=True,
-        taskStatus='Not Started'
+        taskStatus=TaskStatus.NOT_STARTED
     )
     task3 = Event(
         id=3,
@@ -69,7 +77,7 @@ def create_test_data():
         location='Home',
         description='Review lecture notes and practice problems.',
         isTask=True,
-        taskStatus='In Progress'
+        taskStatus=TaskStatus.IN_PROGRESS
     )
     event1 = Event(
         id=4,

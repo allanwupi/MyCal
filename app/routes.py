@@ -1,6 +1,6 @@
 from flask import render_template, jsonify, request, url_for, redirect
 from app import app, db
-from app.models import Event
+from app.models import Event, TaskStatus
 
 @app.route('/', methods=['GET']) # Replace this with a login page later
 @app.route('/calendar', methods=['GET'])
@@ -58,7 +58,7 @@ def save_event_task(dtype):
                 end=due_date,  # For tasks, end equals start
                 backgroundColor=data.get('backgroundColor', '#6366f1'),
                 isTask=True,
-                taskStatus=data.get('taskStatus', 'Not Started')
+                taskStatus=TaskStatus(data.get('taskStatus', 'Not Started'))
             )
         else: # Create a regular event
             # Server-side validation for events
@@ -109,7 +109,7 @@ def update_task_status():
         if not new_status:
             return jsonify({'error': 'Status is required'}), 400
         
-        valid_statuses = ['Not Started', 'In Progress', 'Completed']
+        valid_statuses = [status.value for status in TaskStatus]
         if new_status not in valid_statuses:
             return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
         
@@ -117,7 +117,7 @@ def update_task_status():
         if not task:
             return jsonify({'error': 'Task not found'}), 404
         
-        task.taskStatus = new_status
+        task.taskStatus = TaskStatus(new_status)
         db.session.commit()
         return jsonify(task.to_dict()), 200
     
