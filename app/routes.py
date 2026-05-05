@@ -41,7 +41,7 @@ def save_event_task(dtype):
     """Save a new event or task to the database with server-side validation."""
     try:
         data = request.get_json()
-        id = data.get('id', db.session.query(Event).all().count() + 1)  # Generate a new ID if not provided
+        id = data.get('id', len(db.session.query(Event).all()) + 1)  # Generate a new ID if not provided
         if (dtype == 'task'):
             if not data.get('start'):
                 return jsonify({'error': 'Due date is required for tasks'}), 400

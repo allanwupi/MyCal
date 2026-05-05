@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function () {
     eventChange: function(changeInfo) {
       const isTask = changeInfo.event.extendedProps.isTask;
       let route = isTask ? '/save/task' : '/save/event';
-      // console.log(JSON.stringify(changeInfo.event));
+      console.log(JSON.stringify(changeInfo.event));
       fetch('/delete-event', {
           method: 'POST',
           headers: {
