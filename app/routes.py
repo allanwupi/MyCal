@@ -41,7 +41,12 @@ def save_event_task(dtype):
     """Save a new event or task to the database with server-side validation."""
     try:
         data = request.get_json()
-        id = data.get('id', len(db.session.query(Event).all()) + 1)  # Generate a new ID if not provided
+        provided_id = data.get('id')
+        # Try to interpret provided ID as an integer (FullCalendar may send strings)
+        try:
+            provided_id = int(provided_id) if provided_id is not None else None
+        except (ValueError, TypeError):
+            provided_id = None
         if (dtype == 'task'):
             if not data.get('start'):
                 return jsonify({'error': 'Due date is required for tasks'}), 400
@@ -58,15 +63,28 @@ def save_event_task(dtype):
             if status not in valid_statuses:
                 return jsonify({'error': f'Invalid status {status}. Must be one of: {", ".join(valid_statuses)}'}), 400
             
-            event = Event(
-                id=id,
-                title=data['title'].strip(),
-                start=end,
-                end=end,  # For tasks, start and end are the same (the due date)
-                backgroundColor=data.get('backgroundColor', '#6366f1'),
-                isTask=True,
-                taskStatus=TaskStatus(status)
-            )
+            # If an existing event/task with the provided ID exists, update it
+            event = None
+            if provided_id is not None:
+                event = db.session.query(Event).filter_by(id=provided_id).first()
+
+            if event:
+                event.title = data.get('title', event.title).strip()
+                event.start = end
+                event.end = end
+                event.backgroundColor = data.get('backgroundColor', event.backgroundColor)
+                event.isTask = True
+                event.taskStatus = TaskStatus(status)
+            else:
+                # Create new task (do NOT set the primary key manually)
+                event = Event(
+                    title=data['title'].strip(),
+                    start=end,
+                    end=end,
+                    backgroundColor=data.get('backgroundColor', '#6366f1'),
+                    isTask=True,
+                    taskStatus=TaskStatus(status)
+                )
         elif (dtype == 'event'): # Create a regular event
             # Server-side validation for events
             if not data.get('title') or not data['title'].strip():
@@ -86,20 +104,39 @@ def save_event_task(dtype):
             except (ValueError, TypeError):
                 return jsonify({'error': 'Invalid date/time format'}), 400
             
-            event = Event(
-                id=id,
-                title=data['title'].strip(),
-                start=start,
-                end=end,
-                backgroundColor=data.get('backgroundColor', '#6366f1'),
-                location=data.get('location', '').strip() or None,
-                description=data.get('description', '').strip() or None
-            )
+            # If an existing event with the provided ID exists, update it
+            event = None
+            if provided_id is not None:
+                event = db.session.query(Event).filter_by(id=provided_id).first()
+
+            if event:
+                event.title = data['title'].strip()
+                event.start = start
+                event.end = end
+                event.backgroundColor = data.get('backgroundColor', event.backgroundColor)
+                event.location = (data.get('location') or data.get('extendedProps', {}).get('location') or '').strip() or None
+                event.description = (data.get('description') or data.get('extendedProps', {}).get('description') or '').strip() or None
+                event.isTask = False
+                event.taskStatus = None
+            else:
+                event = Event(
+                    title=data['title'].strip(),
+                    start=start,
+                    end=end,
+                    backgroundColor=data.get('backgroundColor', '#6366f1'),
+                    location=data.get('location', data.get('extendedProps', {}).get('location', '')).strip() or None,
+                    description=data.get('description', data.get('extendedProps', {}).get('description', '')).strip() or None
+                )
         else:
             return jsonify({'error': f'Invalid data type: {dtype}'}), 400
-        db.session.add(event)
-        db.session.commit()
-        return jsonify(event.to_dict()), 201
+        # Add new events to the session; existing events are already tracked
+        if event.id is None:
+            db.session.add(event)
+            db.session.commit()
+            return jsonify(event.to_dict()), 201
+        else:
+            db.session.commit()
+            return jsonify(event.to_dict()), 200
     
     except Exception as e:
         db.session.rollback()
@@ -145,7 +182,6 @@ def delete():
     try:
         data = request.get_json()
         event_id = data.get('id')
-        print(event_id)
         
         if not event_id:
             return jsonify({'error': 'Event ID is required'}), 400

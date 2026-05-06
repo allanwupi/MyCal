@@ -29,34 +29,44 @@ document.addEventListener('DOMContentLoaded', function () {
     nowIndicator: true,
     events: '/get-events',
 
+    // Format a date as ISO string (local time, not UTC) to preserve the original time.
+    formatLocalISO: function(date) {
+      if (!date) return null;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    },
+
     // Allow user to drag, drop and resize events on the calendar, updating the database.
     eventChange: function(changeInfo) {
-      const isTask = changeInfo.event.extendedProps.isTask;
-      let route = isTask ? '/save/task' : '/save/event';
-      console.log(JSON.stringify(changeInfo.event));
-      fetch('/delete-event', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({'id': changeInfo.event.id})
-      })
-      .then(response => {
-        if (!response.ok) {
-          return response.json().then(data => {
-            throw new Error(data.error || 'Failed to remove event!');
-          });
-        }
-      })
-      .catch(error => {
-        alert('Error deleting event: ' + error.message);
-      });
+      const event = changeInfo.event;
+      const isTask = event.extendedProps.isTask;
+      const route = isTask ? '/save/task' : '/save/event';
+      const self = this;
+
+      // Build a plain payload; FullCalendar Event objects are not plain JSON.
+      const payload = {
+        id: event.id,
+        title: event.title,
+        start: event.start ? self.formatLocalISO(event.start) : null,
+        end: isTask ? (event.start ? self.formatLocalISO(event.start) : null) : (event.end ? self.formatLocalISO(event.end) : null),
+        location: event.extendedProps && event.extendedProps.location ? event.extendedProps.location : '',
+        description: event.extendedProps && event.extendedProps.description ? event.extendedProps.description : '',
+        backgroundColor: event.backgroundColor || (event.extendedProps && event.extendedProps.backgroundColor) || '#6366f1',
+        isTask: isTask,
+        taskStatus: isTask ? event.extendedProps.taskStatus : undefined
+      };
+
       fetch(route, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(changeInfo.event)
+        body: JSON.stringify(payload)
       })
       .then(response => {
         if (!response.ok) {
@@ -64,9 +74,12 @@ document.addEventListener('DOMContentLoaded', function () {
             throw new Error(data.error || 'Failed to save event');
           });
         }
+        // Refresh calendar to ensure server values are shown
+        calendar.refetchEvents();
       })
       .catch(error => {
         alert('Error saving event: ' + error.message);
+        calendar.refetchEvents();
       });
     },
 
