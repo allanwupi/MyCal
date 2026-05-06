@@ -138,7 +138,6 @@ def upload():
     file = request.files['file']
     if not file or not file.filename.endswith('.ics'):
         return {"error": "Invalid file"}, 400
-    print('file name is ' +file.filename)
     if not(file.filename):
         return {"error": "No file provided"}, 400
     cal = icalendar.Calendar.from_ical(file.read())
@@ -157,7 +156,8 @@ def upload():
                 end=component.get('dtend').dt if component.get('dtend') else None,
                 backgroundColor=component.get('color', '#6366f1'),
                 location=component.get('location', ''),
-                description=component.get('description', '')
+                description=component.get('description', ''),
+                owner = current_user.email
             )
             db.session.add(event)
             events.append(event)
@@ -222,7 +222,8 @@ def save_event_task(dtype):
                     end=end,
                     backgroundColor=data.get('backgroundColor', '#6366f1'),
                     isTask=True,
-                    taskStatus=TaskStatus(status)
+                    taskStatus=TaskStatus(status),
+                    owner=current_user.email
                 )
         elif (dtype == 'event'): # Create a regular event
             # Server-side validation for events
@@ -264,7 +265,8 @@ def save_event_task(dtype):
                     end=end,
                     backgroundColor=data.get('backgroundColor', '#6366f1'),
                     location=data.get('location', data.get('extendedProps', {}).get('location', '')).strip() or None,
-                    description=data.get('description', data.get('extendedProps', {}).get('description', '')).strip() or None
+                    description=data.get('description', data.get('extendedProps', {}).get('description', '')).strip() or None,
+                    owner=current_user.email
                 )
         else:
             return jsonify({'error': f'Invalid data type: {dtype}'}), 400
