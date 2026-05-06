@@ -1,7 +1,9 @@
 from app import db
 from datetime import datetime
 import enum
+from flask_login import UserMixin
 from sqlalchemy import Enum
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class TaskStatus(enum.Enum):
@@ -10,10 +12,20 @@ class TaskStatus(enum.Enum):
     COMPLETED = 'Completed'
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     email = db.Column(db.String(120), primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    events = db.relationship('Event', backref='user', lazy=True)
+
+    def get_id(self):
+        return self.email
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 class Event(db.Model):
@@ -26,7 +38,7 @@ class Event(db.Model):
     description = db.Column(db.Text, nullable=True)
     isTask = db.Column(db.Boolean, default=False)
     taskStatus = db.Column(Enum(TaskStatus), nullable=True)
-    owner = db.Column(db.String(120), db.ForeignKey(User.email), nullable=True)  # For future user association
+    owner = db.Column(db.String(120), db.ForeignKey(User.email), nullable=False)
 
     def to_dict(self): # Converts event object to a dictionary for JSON serialization
         return {
@@ -46,7 +58,7 @@ class Event(db.Model):
         }
 
 
-def create_test_data():
+def create_test_data(owner_email):
     task1 = Event(
         title='Assignment Due',
         start=datetime(2026, 4, 25, 14, 0, 0),
@@ -55,7 +67,8 @@ def create_test_data():
         location='UWA Library',
         description='Complete and submit the final assignment.',
         isTask=True,
-        taskStatus=TaskStatus.COMPLETED
+        taskStatus=TaskStatus.COMPLETED,
+        owner=owner_email
     )
     task2 = Event(
         title='Study for Test',
@@ -65,7 +78,8 @@ def create_test_data():
         location='Home',
         description='Review lecture notes and practice problems.',
         isTask=True,
-        taskStatus=TaskStatus.IN_PROGRESS
+        taskStatus=TaskStatus.IN_PROGRESS,
+        owner=owner_email
     )
     event1 = Event(
         title='Gym Session',
@@ -73,7 +87,8 @@ def create_test_data():
         end=datetime(2026, 4, 22, 18, 0, 0),
         backgroundColor='#6366f1',
         location='Campus Gym',
-        description='Strength workout and cardio session.'
+        description='Strength workout and cardio session.',
+        owner=owner_email
     )
     event2 = Event(
         title='Group Meeting',
@@ -82,8 +97,8 @@ def create_test_data():
         backgroundColor='#6366f1',
         location='Engineering Building',
         description='Project discussion with team members.',
-        isTask=False
+        isTask=False,
+        owner=owner_email
     )
-    events = [task1, task2, event1, event2]
-    db.session.add_all(events)
+    db.session.add_all([task1, task2, event1, event2])
     db.session.commit()
