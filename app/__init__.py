@@ -32,3 +32,11 @@ def init_db_command():
     """Create database tables for local development."""
     db.create_all()
     print('Database tables created.')
+
+
+@app.cli.command('clear-db')
+def clear_db_command():
+    """Clear all data from the database tables for local development."""
+    db.drop_all()
+    db.create_all()
+    print('Database tables cleared and recreated.')

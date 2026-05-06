@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
     fixedWeekCount: false,
     initialView: 'dayGridMonth',
     height: 'auto',
+    allDaySlot: false,
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
