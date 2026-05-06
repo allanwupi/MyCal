@@ -35,6 +35,7 @@ class Event(db.Model):
             'start': self.start.isoformat(),
             'end': self.end.isoformat(),
             'backgroundColor': self.backgroundColor,
+            'durationEditable': not self.isTask,  # Tasks should not be duration editable
             'extendedProps': {
                 'location': self.location,
                 'description': self.description,
@@ -47,7 +48,6 @@ class Event(db.Model):
 
 def create_test_data():
     task1 = Event(
-        id=1,
         title='Assignment Due',
         start=datetime(2026, 4, 25, 14, 0, 0),
         end=datetime(2026, 4, 25, 14, 0, 0),
@@ -58,7 +58,6 @@ def create_test_data():
         taskStatus=TaskStatus.COMPLETED
     )
     task2 = Event(
-        id=2,
         title='Study for Test',
         start=datetime(2026, 4, 20, 9, 0, 0),
         end=datetime(2026, 4, 20, 9, 0, 0),
@@ -69,7 +68,6 @@ def create_test_data():
         taskStatus=TaskStatus.IN_PROGRESS
     )
     event1 = Event(
-        id=3,
         title='Gym Session',
         start=datetime(2026, 4, 22, 16, 0, 0),
         end=datetime(2026, 4, 22, 18, 0, 0),
@@ -78,7 +76,6 @@ def create_test_data():
         description='Strength workout and cardio session.'
     )
     event2 = Event(
-        id=4,
         title='Group Meeting',
         start=datetime(2026, 4, 23, 10, 0, 0),
         end=datetime(2026, 4, 23, 11, 0, 0),
