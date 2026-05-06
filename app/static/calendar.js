@@ -51,6 +51,7 @@ function eventToJson(event, isTask) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+  const CALENDAR_HEIGHT_RATIO = 0.9; // Calendar will take up 90% of the viewport height
   const calendarEl = document.getElementById('calendar');
   const tooltip = document.getElementById('eventTooltip');
 
@@ -70,7 +71,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const calendar = new FullCalendar.Calendar(calendarEl, {
     fixedWeekCount: false,
     initialView: 'dayGridMonth',
-    height: 'auto',
+    height: window.innerHeight*CALENDAR_HEIGHT_RATIO,
+    scrollTime: '08:00:00',
     allDaySlot: false,
     headerToolbar: {
       left: 'prev,next today',
@@ -127,6 +129,10 @@ document.addEventListener('DOMContentLoaded', function () {
   calendarEl.addEventListener('mousemove', function(e) {
     tooltip.style.left = (e.pageX + 16) + 'px';
     tooltip.style.top = (e.pageY + 16) + 'px';
+  });
+
+  window.addEventListener('resize', function() {
+    calendar.setOption('height', window.innerHeight*CALENDAR_HEIGHT_RATIO);
   });
 
   openEventModalBtn.addEventListener('click', () => {
