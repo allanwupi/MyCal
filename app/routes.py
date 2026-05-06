@@ -38,7 +38,8 @@ def get_events():
 
 @app.route('/save/<dtype>', methods=['POST'])
 def save_event_task(dtype):
-    """Save a new event or task to the database with server-side validation."""
+    """Save a new event or task to the database with server-side validation.
+    Note that the request MUST specify all required parameters for an event/task."""
     try:
         data = request.get_json()
         provided_id = data.get('id')
@@ -146,7 +147,7 @@ def save_event_task(dtype):
 
 @app.route('/update-task-status', methods=['POST'])
 def update_task_status():
-    """Update the status of a task."""
+    """Updates the status of a task (request should only contain the task ID and new status)."""
     try:
         data = request.get_json()
         task_id = data.get('id')
