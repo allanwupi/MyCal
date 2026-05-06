@@ -2,7 +2,7 @@ from flask import flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import or_
 from app import app, db
-from app.models import Event, TaskStatus
+from app.models import Event, TaskStatus, User
 from datetime import datetime
 import icalendar
 
@@ -48,7 +48,7 @@ def signup():
         flash('Passwords do not match.', 'danger')
         return redirect(url_for('landing'))
 
-    existing_user = User.query.filter(
+    existing_user = db.session.query(User).filter(
         or_(User.email == email, User.username == username)
     ).first()
 
@@ -82,7 +82,7 @@ def login():
         flash('Email/username and password are required.', 'danger')
         return redirect(url_for('landing'))
 
-    user = User.query.filter(
+    user = db.session.query(User).filter(
         or_(User.email == identifier.lower(), User.username == identifier)
     ).first()
 
@@ -175,7 +175,6 @@ def get_events():
 
 @app.route('/save/<dtype>', methods=['POST'])
 @login_required
-@app.route('/save/<dtype>', methods=['POST'])
 def save_event_task(dtype):
     """Save a new event or task to the database with server-side validation.
     Note that the request MUST specify all required parameters for an event/task."""
@@ -281,7 +280,7 @@ def save_event_task(dtype):
     except Exception as e:
         db.session.rollback()
         print(e)
-        return jsonify({'error': Internal Server Error'}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @app.route('/update-task-status', methods=['POST'])
@@ -339,7 +338,7 @@ def delete():
         db.session.rollback()
         print(e)
         return jsonify({'error': 'Internal Server Error'}), 500
-        return jsonify({'error': f'Internal Server Error'}), 500
+
     
 @app.route('/delete-all', methods=['POST'])
 def delete_all():
@@ -351,4 +350,4 @@ def delete_all():
     except Exception as e:
         db.session.rollback()
         print(e)
-        return jsonify({'error': f'Internal Server Error'}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
