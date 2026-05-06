@@ -15,6 +15,15 @@ def normalise_username(username):
     return (username or '').strip()
 
 
+@app.template_filter('format_datetime')
+def format_datetime(dt):
+    # "o-d", "%-I" is not supported on Windows, so we need to remove leading zeros manually
+    d = dt.strftime("&d").lstrip("0")
+    I = dt.strftime("%I").lstrip("0")
+    return f'{dt.strftime("%b")} {d}, {dt.strftime("%Y")} {I}:{dt.strftime("M")} {dt.strftime("%p")}'
+    # equivalent to strftime("%b %-d, %Y %-I:®M %p") on Unix-based systems
+
+
 @app.route('/', methods=['GET'])
 def landing():
     if current_user.is_authenticated:
@@ -190,7 +199,6 @@ def save_event_task(dtype):
             if not data.get('start'):
                 return jsonify({'error': 'Due date is required for tasks'}), 400
             try:
-                from datetime import datetime
                 # FullCalendar will not store the end date for tasks, so we must access the start date
                 # This is the same as the end date for tasks which we define as only having a due date
                 end = datetime.fromisoformat(data['start'])
@@ -235,7 +243,6 @@ def save_event_task(dtype):
                 return jsonify({'error': 'End date/time is required'}), 400
             
             try:
-                from datetime import datetime
                 start = datetime.fromisoformat(data['start'])
                 end = datetime.fromisoformat(data['end'])
                 
