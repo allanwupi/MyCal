@@ -234,3 +234,15 @@ def delete():
         db.session.rollback()
         print(e)
         return jsonify({'error': f'Internal Server Error'}), 500
+    
+@app.route('/delete-all', methods=['POST'])
+def delete_all():
+    """Delete all events from the database. This is used for testing purposes ONLY."""
+    try:
+        num_deleted = db.session.query(Event).delete()
+        db.session.commit()
+        return jsonify({'message': f'{num_deleted} events deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(e)
+        return jsonify({'error': f'Internal Server Error'}), 500
