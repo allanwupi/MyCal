@@ -1,10 +1,11 @@
-from datetime import datetime
-
 from flask import flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import or_
-
 from app import app, db
+from app.models import Event, TaskStatus
+from datetime import datetime
+import icalendar
+
 
 def normalise_email(email):
     return (email or '').strip().lower()
@@ -102,12 +103,6 @@ def logout():
     return redirect(url_for('landing'))
 
 
-from app.models import Event, TaskStatus
-
-
-@app.route('/', methods=['GET']) # Replace this with a login page later
-
-
 @app.route('/calendar', methods=['GET'])
 @login_required
 def calendar():
@@ -136,6 +131,7 @@ def friends():
 @login_required
 def imported_calendars():
     return render_template('import-page.html', import_active=True)
+
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -179,108 +175,113 @@ def get_events():
 
 @app.route('/save/<dtype>', methods=['POST'])
 @login_required
+@app.route('/save/<dtype>', methods=['POST'])
 def save_event_task(dtype):
     """Save a new event or task to the database with server-side validation.
     Note that the request MUST specify all required parameters for an event/task."""
     try:
-        data = request.get_json() or {}
-
+        data = request.get_json()
         provided_id = data.get('id')
+        # Try to interpret provided ID as an integer (FullCalendar may send strings)
         try:
             provided_id = int(provided_id) if provided_id is not None else None
         except (ValueError, TypeError):
             provided_id = None
-
-        if dtype == 'task':
-            if not data.get('title') or not data['title'].strip():
-                return jsonify({'error': 'Task title is required'}), 400
-
-            due_date = data.get('end') or data.get('start')
-            if not due_date:
+        if (dtype == 'task'):
+            if not data.get('start'):
                 return jsonify({'error': 'Due date is required for tasks'}), 400
-
             try:
-                end = datetime.fromisoformat(due_date)
+                from datetime import datetime
+                # FullCalendar will not store the end date for tasks, so we must access the start date
+                # This is the same as the end date for tasks which we define as only having a due date
+                end = datetime.fromisoformat(data['start'])
             except (ValueError, TypeError):
                 return jsonify({'error': 'Invalid date/time format for due date'}), 400
-
-            status = (
-                data.get('taskStatus')
-                or data.get('extendedProps', {}).get('taskStatus')
-                or TaskStatus.NOT_STARTED.value
-            )
-
+            
+            status = data.get('taskStatus', data.get('extendedProps', {}).get('taskStatus'))
             valid_statuses = [status.value for status in TaskStatus]
             if status not in valid_statuses:
-                return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
-
+                return jsonify({'error': f'Invalid status {status}. Must be one of: {", ".join(valid_statuses)}'}), 400
+            
+            # If an existing event/task with the provided ID exists, update it
             event = None
             if provided_id is not None:
-                event = db.session.query(Event).filter_by(
-                    id=provided_id,
-                    owner=current_user.email
-                ).first()
+                event = db.session.query(Event).filter_by(id=provided_id).first()
 
             if event:
-                event.title = data['title'].strip()
+                event.title = data.get('title', event.title).strip()
                 event.start = end
                 event.end = end
                 event.backgroundColor = data.get('backgroundColor', event.backgroundColor)
-                event.location = (data.get('location') or '').strip() or None
-                event.description = (data.get('description') or '').strip() or None
                 event.isTask = True
                 event.taskStatus = TaskStatus(status)
             else:
+                # Create new task (do NOT set the primary key manually)
                 event = Event(
                     title=data['title'].strip(),
                     start=end,
                     end=end,
                     backgroundColor=data.get('backgroundColor', '#6366f1'),
-                    location=(data.get('location') or '').strip() or None,
-                    description=(data.get('description') or '').strip() or None,
                     isTask=True,
-                    taskStatus=TaskStatus(status),
-                    owner=current_user.email
+                    taskStatus=TaskStatus(status)
                 )
-                db.session.add(event)
-
-        elif dtype == 'event':
+        elif (dtype == 'event'): # Create a regular event
+            # Server-side validation for events
             if not data.get('title') or not data['title'].strip():
                 return jsonify({'error': 'Event title is required'}), 400
             if not data.get('start'):
                 return jsonify({'error': 'Start date/time is required'}), 400
             if not data.get('end'):
                 return jsonify({'error': 'End date/time is required'}), 400
-
+            
             try:
+                from datetime import datetime
                 start = datetime.fromisoformat(data['start'])
                 end = datetime.fromisoformat(data['end'])
+                
                 if end < start:
                     return jsonify({'error': 'End date/time cannot be before start date/time'}), 400
             except (ValueError, TypeError):
                 return jsonify({'error': 'Invalid date/time format'}), 400
+            
+            # If an existing event with the provided ID exists, update it
+            event = None
+            if provided_id is not None:
+                event = db.session.query(Event).filter_by(id=provided_id).first()
 
-            event = Event(
-                title=data['title'].strip(),
-                start=start,
-                end=end,
-                backgroundColor=data.get('backgroundColor', '#6366f1'),
-                location=(data.get('location') or '').strip() or None,
-                description=(data.get('description') or '').strip() or None,
-                isTask=False,
-                owner=current_user.email
-            )
+            if event:
+                event.title = data['title'].strip()
+                event.start = start
+                event.end = end
+                event.backgroundColor = data.get('backgroundColor', event.backgroundColor)
+                event.location = (data.get('location') or data.get('extendedProps', {}).get('location') or '').strip() or None
+                event.description = (data.get('description') or data.get('extendedProps', {}).get('description') or '').strip() or None
+                event.isTask = False
+                event.taskStatus = None
+            else:
+                event = Event(
+                    title=data['title'].strip(),
+                    start=start,
+                    end=end,
+                    backgroundColor=data.get('backgroundColor', '#6366f1'),
+                    location=data.get('location', data.get('extendedProps', {}).get('location', '')).strip() or None,
+                    description=data.get('description', data.get('extendedProps', {}).get('description', '')).strip() or None
+                )
         else:
             return jsonify({'error': f'Invalid data type: {dtype}'}), 400
-
-        db.session.add(event)
-        db.session.commit()
-        return jsonify(event.to_dict()), 201
-
+        # Add new events to the session; existing events are already tracked
+        if event.id is None:
+            db.session.add(event)
+            db.session.commit()
+            return jsonify(event.to_dict()), 201
+        else:
+            db.session.commit()
+            return jsonify(event.to_dict()), 200
+    
     except Exception as e:
         db.session.rollback()
         print(e)
-        return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': Internal Server Error'}), 500
 
 
 @app.route('/update-task-status', methods=['POST'])
