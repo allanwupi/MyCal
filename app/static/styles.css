@@ -763,3 +763,15 @@ input[type="file"]:focus {
     align-items: flex-start;
   }
 }
+
+#availabilityCalendar {
+    background: white;
+    padding: 10px;
+    border-radius: 12px;
+}
+
+#searchResults div:hover,
+#friendsList div:hover,
+#compareList div:hover {
+    background-color: #f8f9fa;
+} 
