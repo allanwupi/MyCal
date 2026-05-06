@@ -7,10 +7,12 @@
   <p>Upload calendar files so events can be added into your app later.</p>
 </div>
 <div class="glass-card">
-  <div class="import-row">
-    <input type="file" id="calendarFile" accept=".ics" />
-    <button class="primary-btn" type="button">Upload</button>
-  </div>
+  <form id="uploadForm">
+    <div class="import-row">
+      <input type="file" id="fileInput" accept=".ics" />
+      <button class="primary-btn" type="submit">Upload</button>
+    </div>
+  </form>
 
   <div class="import-box">
     <h4>Import an .ics calendar file</h4>
@@ -22,5 +24,5 @@
 </div>
 {% endblock %}
 {% block javascript %}
-
+<script src="{{ url_for('static', filename='import.js') }}"></script>
 {% endblock %}
