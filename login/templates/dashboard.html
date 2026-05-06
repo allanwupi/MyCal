@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendar App Dashboard</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-text">
+            <h2>MyCal</h2>
+            <p>Schedule dashboard</p>
+          </div>
+        </div>
+        <button class="toggle-btn" id="toggleSidebar">☰</button>
+      </div>
+
+      <ul class="nav-links">
+        <li class="active" data-section="calendar-section">
+          <span class="nav-icon">📅</span>
+          <span class="label">Calendar</span>
+        </li>
+        <li data-section="todo-section">
+          <span class="nav-icon">✅</span>
+          <span class="label">To-do List</span>
+        </li>
+        <li data-section="friends-section">
+          <span class="nav-icon">👥</span>
+          <span class="label">Friends</span>
+        </li>
+        <li data-section="import-section">
+          <span class="nav-icon">📥</span>
+          <span class="label">Import Calendar</span>
+        </li>
+      </ul>
+    </aside>
+
+    <main class="main-content">
+      <div class="topbar">
+        <div>
+          <h1>My Dashboard</h1>
+          <p>Manage your schedule, tasks, friends, and imported calendars in one place.</p>
+        </div>
+         <a href="{{ url_for('logout') }}" class="primary-btn">Logout</a>
+      </div>
+
+      <section id="calendar-section" class="section active">
+        <div class="section-title d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div>
+            <h2>Calendar</h2>
+            <p>View your schedule by month, week, or day and hover events for extra details.</p>
+          </div>
+          <button class="primary-btn" id="openEventModalBtn">+ Add Event</button>
+        </div>
+
+        <div class="glass-card">
+          <div id="calendar"></div>
+        </div>
+      </section>
+
+      <section id="todo-section" class="section">
+        <div class="section-title">
+          <h2>To-do List</h2>
+          <p>Add tasks, set due dates, update progress, and filter what you see.</p>
+        </div>
+        <div class="glass-card">
+          <div class="todo-input-row">
+            <input type="text" id="todoInput" placeholder="Add a new task..." />
+            <input type="date" id="todoDate" />
+            <button class="primary-btn" id="addTodoBtn">Add Task</button>
+          </div>
+
+          <div class="filter-buttons">
+            <button class="btn active-filter" data-filter="all">All</button>
+            <button class="btn" data-filter="pending">Pending</button>
+            <button class="btn" data-filter="completed">Completed</button>
+          </div>
+
+          <ul class="todo-list" id="todoList"></ul>
+        </div>
+      </section>
+
+      <section id="friends-section" class="section">
+        <div class="section-title">
+          <h2>Friends</h2>
+          <p>See people you can share calendars and plans with.</p>
+        </div>
+        <div class="glass-card">
+          <div class="friends-grid">
+            <div class="friend-card">
+              <div class="friend-avatar">JS</div>
+              <div class="friend-meta">
+                <h4>John Smith</h4>
+                <p>Available for shared planning</p>
+              </div>
+            </div>
+
+            <div class="friend-card">
+              <div class="friend-avatar">SL</div>
+              <div class="friend-meta">
+                <h4>Sarah Lee</h4>
+                <p>Weekly study planner</p>
+              </div>
+            </div>
+
+            <div class="friend-card">
+              <div class="friend-avatar">AT</div>
+              <div class="friend-meta">
+                <h4>Alex Tan</h4>
+                <p>Workout and event coordination</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="import-section" class="section">
+        <div class="section-title">
+          <h2>Import Calendar</h2>
+          <p>Upload calendar files so events can be added into your app later.</p>
+        </div>
+        <div class="glass-card">
+          <div class="import-row">
+            <input type="file" id="calendarFile" accept=".ics" />
+            <button class="primary-btn" type="button">Upload</button>
+          </div>
+
+          <div class="import-box">
+            <h4>Import an .ics calendar file</h4>
+            <p>Use this section to upload timetable, meeting, or event files. Later, this can be connected to your FullCalendar event data.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="eventTooltip" class="event-tooltip"></div>
+
+  <!-- Add Event Modal -->
+  <div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addEventModalLabel">Add Event</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="eventTitle" class="form-label">Event Title</label>
+            <input type="text" class="form-control" id="eventTitle" placeholder="Enter event title">
+          </div>
+
+          <div class="mb-3">
+            <label for="eventStart" class="form-label">Start</label>
+            <input type="datetime-local" class="form-control" id="eventStart">
+          </div>
+
+          <div class="mb-3">
+            <label for="eventEnd" class="form-label">End</label>
+            <input type="datetime-local" class="form-control" id="eventEnd">
+          </div>
+
+          <div class="mb-3">
+            <label for="eventLocation" class="form-label">Location</label>
+            <input type="text" class="form-control" id="eventLocation" placeholder="Enter location">
+          </div>
+
+          <div class="mb-3">
+            <label for="eventDescription" class="form-label">Details</label>
+            <textarea class="form-control" id="eventDescription" rows="3" placeholder="Enter event details"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="primary-btn" id="saveEventBtn">Save Event</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

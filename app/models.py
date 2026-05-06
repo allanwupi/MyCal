@@ -1,5 +1,13 @@
 from app import db
 from datetime import datetime
+import enum
+from sqlalchemy import Enum
+
+
+class TaskStatus(enum.Enum):
+    NOT_STARTED = 'Not Started'
+    IN_PROGRESS = 'In Progress'
+    COMPLETED = 'Completed'
 
 
 class User(db.Model):
@@ -11,13 +19,13 @@ class User(db.Model):
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
-    start = db.Column(db.DateTime, nullable=False)
+    start = db.Column(db.DateTime, nullable=False)  # For tasks, treat the start datetime as the due date and time
     end = db.Column(db.DateTime, nullable=False)
     backgroundColor = db.Column(db.String(20), nullable=True)
     location = db.Column(db.String(200), nullable=True)
     description = db.Column(db.Text, nullable=True)
     isTask = db.Column(db.Boolean, default=False)
-    taskStatus = db.Column(db.String(20), nullable=True)  # 'Not Started', 'In Progress', 'Completed'
+    taskStatus = db.Column(Enum(TaskStatus), nullable=True)
     owner = db.Column(db.String(120), db.ForeignKey(User.email), nullable=True)  # For future user association
 
     def to_dict(self): # Converts event object to a dictionary for JSON serialization
@@ -27,48 +35,55 @@ class Event(db.Model):
             'start': self.start.isoformat(),
             'end': self.end.isoformat(),
             'backgroundColor': self.backgroundColor,
+            'durationEditable': not self.isTask,  # Tasks should not be duration editable
             'extendedProps': {
                 'location': self.location,
                 'description': self.description,
                 'isTask': self.isTask,
-                'taskStatus': self.taskStatus,
+                'taskStatus': self.taskStatus.value if self.taskStatus else None,
                 'owner': self.owner
             }
         }
 
 
 def create_test_data():
-    event1 = Event(
-        id=1,
+    task1 = Event(
         title='Assignment Due',
         start=datetime(2026, 4, 25, 14, 0, 0),
-        end=datetime(2026, 4, 25, 16, 0, 0),
+        end=datetime(2026, 4, 25, 14, 0, 0),
         backgroundColor='#6366f1',
         location='UWA Library',
         description='Complete and submit the final assignment.',
         isTask=True,
-        taskStatus='Completed'
+        taskStatus=TaskStatus.COMPLETED
+    )
+    task2 = Event(
+        title='Study for Test',
+        start=datetime(2026, 4, 20, 9, 0, 0),
+        end=datetime(2026, 4, 20, 9, 0, 0),
+        backgroundColor='#6366f1',
+        location='Home',
+        description='Review lecture notes and practice problems.',
+        isTask=True,
+        taskStatus=TaskStatus.IN_PROGRESS
+    )
+    event1 = Event(
+        title='Gym Session',
+        start=datetime(2026, 4, 22, 16, 0, 0),
+        end=datetime(2026, 4, 22, 18, 0, 0),
+        backgroundColor='#6366f1',
+        location='Campus Gym',
+        description='Strength workout and cardio session.'
     )
     event2 = Event(
-        id=2,
         title='Group Meeting',
         start=datetime(2026, 4, 23, 10, 0, 0),
         end=datetime(2026, 4, 23, 11, 0, 0),
-        backgroundColor='#3b82f6',
+        backgroundColor='#6366f1',
         location='Engineering Building',
         description='Project discussion with team members.',
         isTask=False
     )
-    event3 = Event(
-        id=3,
-        title='Gym Session',
-        start=datetime(2026, 4, 22, 18, 0, 0),
-        end=datetime(2026, 4, 22, 19, 30, 0),
-        backgroundColor='#8b5cf6',
-        location='Campus Gym',
-        description='Strength workout and cardio session.',
-        isTask=False
-    )
-    events = [event1, event2, event3]
+    events = [task1, task2, event1, event2]
     db.session.add_all(events)
     db.session.commit()
