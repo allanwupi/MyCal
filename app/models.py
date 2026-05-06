@@ -47,6 +47,7 @@ class Event(db.Model):
             'start': self.start.isoformat(),
             'end': self.end.isoformat(),
             'backgroundColor': self.backgroundColor,
+            'durationEditable': not self.isTask,  # Tasks should not be duration editable
             'extendedProps': {
                 'location': self.location,
                 'description': self.description,

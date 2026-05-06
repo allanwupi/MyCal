@@ -211,9 +211,6 @@ document.addEventListener('DOMContentLoaded', function () {
               throw new Error(data.error || 'Failed to delete event');
             });
           }
-          return response.json();
-        })
-        .then(() => {
           taskItem.remove();
           applyFilter();
         })
@@ -247,9 +244,6 @@ document.addEventListener('DOMContentLoaded', function () {
               throw new Error(data.error || 'Failed to update task status');
             });
           }
-          return response.json();
-        })
-        .then(updatedTask => {
           // Update the task item with the new status
           taskItem.dataset.status = newStatus;
 

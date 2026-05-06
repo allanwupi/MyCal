@@ -5,8 +5,6 @@ from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import or_
 
 from app import app, db
-from app.models import Event, TaskStatus, User
-
 
 def normalise_email(email):
     return (email or '').strip().lower()
@@ -104,6 +102,12 @@ def logout():
     return redirect(url_for('landing'))
 
 
+from app.models import Event, TaskStatus
+
+
+@app.route('/', methods=['GET']) # Replace this with a login page later
+
+
 @app.route('/calendar', methods=['GET'])
 @login_required
 def calendar():
@@ -133,7 +137,39 @@ def friends():
 def imported_calendars():
     return render_template('import-page.html', import_active=True)
 
+@app.route('/upload', methods=['POST'])
+def upload():
+    file = request.files['file']
+    if not file or not file.filename.endswith('.ics'):
+        return {"error": "Invalid file"}, 400
+    print('file name is ' +file.filename)
+    if not(file.filename):
+        return {"error": "No file provided"}, 400
+    cal = icalendar.Calendar.from_ical(file.read())
+    count = 0
+    seen = set()
+    events = []
+    for component in cal.walk():
+        if component.name == "VEVENT":
+            uid = str(component.get('uid'))
+            if uid in seen:
+                continue
+            seen.add(uid)
+            event = Event(
+                title=str(component.get('summary')),
+                start=component.get('dtstart').dt,
+                end=component.get('dtend').dt if component.get('dtend') else None,
+                backgroundColor=component.get('color', '#6366f1'),
+                location=component.get('location', ''),
+                description=component.get('description', '')
+            )
+            db.session.add(event)
+            events.append(event)
+            count += 1
+    db.session.commit()
+    return jsonify([e.to_dict() for e in events]), 200
 
+ 
 @app.route('/get-events', methods=['GET'])
 @login_required
 def get_events():
@@ -144,36 +180,70 @@ def get_events():
 @app.route('/save/<dtype>', methods=['POST'])
 @login_required
 def save_event_task(dtype):
-    """Save a new event or task to the database with server-side validation."""
+    """Save a new event or task to the database with server-side validation.
+    Note that the request MUST specify all required parameters for an event/task."""
     try:
         data = request.get_json() or {}
+
+        provided_id = data.get('id')
+        try:
+            provided_id = int(provided_id) if provided_id is not None else None
+        except (ValueError, TypeError):
+            provided_id = None
 
         if dtype == 'task':
             if not data.get('title') or not data['title'].strip():
                 return jsonify({'error': 'Task title is required'}), 400
-            if not data.get('end'):
+
+            due_date = data.get('end') or data.get('start')
+            if not due_date:
                 return jsonify({'error': 'Due date is required for tasks'}), 400
+
             try:
-                end = datetime.fromisoformat(data['end'])
+                end = datetime.fromisoformat(due_date)
             except (ValueError, TypeError):
                 return jsonify({'error': 'Invalid date/time format for due date'}), 400
 
-            status = data.get('taskStatus') or TaskStatus.NOT_STARTED.value
+            status = (
+                data.get('taskStatus')
+                or data.get('extendedProps', {}).get('taskStatus')
+                or TaskStatus.NOT_STARTED.value
+            )
+
             valid_statuses = [status.value for status in TaskStatus]
             if status not in valid_statuses:
                 return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
 
-            event = Event(
-                title=data['title'].strip(),
-                start=end,
-                end=end,
-                backgroundColor=data.get('backgroundColor', '#6366f1'),
-                location=(data.get('location') or '').strip() or None,
-                description=(data.get('description') or '').strip() or None,
-                isTask=True,
-                taskStatus=TaskStatus(status),
-                owner=current_user.email
-            )
+            event = None
+            if provided_id is not None:
+                event = db.session.query(Event).filter_by(
+                    id=provided_id,
+                    owner=current_user.email
+                ).first()
+
+            if event:
+                event.title = data['title'].strip()
+                event.start = end
+                event.end = end
+                event.backgroundColor = data.get('backgroundColor', event.backgroundColor)
+                event.location = (data.get('location') or '').strip() or None
+                event.description = (data.get('description') or '').strip() or None
+                event.isTask = True
+                event.taskStatus = TaskStatus(status)
+            else:
+                event = Event(
+                    title=data['title'].strip(),
+                    start=end,
+                    end=end,
+                    backgroundColor=data.get('backgroundColor', '#6366f1'),
+                    location=(data.get('location') or '').strip() or None,
+                    description=(data.get('description') or '').strip() or None,
+                    isTask=True,
+                    taskStatus=TaskStatus(status),
+                    owner=current_user.email
+                )
+                db.session.add(event)
+
         elif dtype == 'event':
             if not data.get('title') or not data['title'].strip():
                 return jsonify({'error': 'Event title is required'}), 400
@@ -216,7 +286,7 @@ def save_event_task(dtype):
 @app.route('/update-task-status', methods=['POST'])
 @login_required
 def update_task_status():
-    """Update the status of a task."""
+    """Updates the status of a task (request should only contain the task ID and new status)."""
     try:
         data = request.get_json() or {}
         task_id = data.get('id')
@@ -268,3 +338,16 @@ def delete():
         db.session.rollback()
         print(e)
         return jsonify({'error': 'Internal Server Error'}), 500
+        return jsonify({'error': f'Internal Server Error'}), 500
+    
+@app.route('/delete-all', methods=['POST'])
+def delete_all():
+    """Delete all events from the database. This is used for testing purposes ONLY."""
+    try:
+        num_deleted = db.session.query(Event).delete()
+        db.session.commit()
+        return jsonify({'message': f'{num_deleted} events deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(e)
+        return jsonify({'error': f'Internal Server Error'}), 500
