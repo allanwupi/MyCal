@@ -207,6 +207,7 @@ marimo/_lsp/
 __marimo__/
 
 .wip
+.DS_Store
 
 # Do not upload databases to GitHub
 *.db

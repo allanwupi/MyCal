@@ -17,13 +17,34 @@ A web app developed for the CITS3403 Agile Web Development group project. This i
 ## Instructions
 
 ### Launching the App
-Clone this repository to your local machine, create a Python virtual environment and run Flask.
+Install dependencies:
 
-```python
-python -m venv .venv
-source .venv/bin/activate
+```bash
 pip install -r requirements.txt
-flask run
+```
+
+Create the database tables:
+
+```bash
+flask --app mycal init-db
+```
+
+Run the app:
+
+```bash
+flask --app mycal run --debug
+```
+
+Then open the local Flask URL:
+
+```text
+http://127.0.0.1:5000/
+```
+
+Note: For local development, `SECRET_KEY` has a fallback value in `app/config.py`. For deployment, set a real secret key with:
+
+```bash
+export MYCAL_SECRET_KEY="your-secret-key-here"
 ```
 
 ### Tests
