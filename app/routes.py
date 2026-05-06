@@ -35,24 +35,21 @@ def imported_calendars():
 @app.route('/upload', methods=['POST'])
 def upload():
     file = request.files['file']
-
     if not file or not file.filename.endswith('.ics'):
         return {"error": "Invalid file"}, 400
-
+    print('file name is ' +file.filename)
+    if not(file.filename):
+        return {"error": "No file provided"}, 400
     cal = icalendar.Calendar.from_ical(file.read())
     count = 0
     seen = set()
     events = []
     for component in cal.walk():
         if component.name == "VEVENT":
-
             uid = str(component.get('uid'))
-
             if uid in seen:
                 continue
-
             seen.add(uid)
-
             event = Event(
                 title=str(component.get('summary')),
                 start=component.get('dtstart').dt,
@@ -61,13 +58,10 @@ def upload():
                 location=component.get('location', ''),
                 description=component.get('description', '')
             )
-
             db.session.add(event)
             events.append(event)
             count += 1
-
     db.session.commit()
-
     return jsonify([e.to_dict() for e in events]), 200
 
  
