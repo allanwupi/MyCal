@@ -50,7 +50,10 @@ def upload():
             event = Event(
                 title=str(component.get('summary')),
                 start=component.get('dtstart').dt,
-                end=component.get('dtend').dt if component.get('dtend') else None
+                end=component.get('dtend').dt if component.get('dtend') else None,
+                backgroundColor=component.get('color', '#6366f1'),
+                location=component.get('location', ''),
+                description=component.get('description', '')
             )
 
             db.session.add(event)
@@ -59,7 +62,7 @@ def upload():
 
     db.session.commit()
 
-    return {"message": f"{count} events added"}
+    return jsonify([e.to_dict() for e in events]), 200
 
 @app.route('/save-event', methods=['POST'])
 def save_event():
