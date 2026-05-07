@@ -3,8 +3,10 @@ from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import or_
 from app import app, db
 from app.models import Event, TaskStatus, User
+from app.forms import LoginForm, SignupForm
 from datetime import datetime
 import icalendar
+
 
 
 def normalise_email(email):
@@ -26,83 +28,141 @@ def format_datetime(dt):
 
 @app.route('/', methods=['GET'])
 def landing():
+
     if current_user.is_authenticated:
         return redirect(url_for('calendar'))
-    return render_template('landing.html')
+
+    login_form = LoginForm()
+
+    signup_form = SignupForm()
+
+    return render_template(
+        'landing.html',
+        login_form=login_form,
+        signup_form=signup_form
+    )
 
 
 @app.route('/signup', methods=['POST'])
 def signup():
+
     if current_user.is_authenticated:
         return redirect(url_for('calendar'))
 
-    username = normalise_username(request.form.get('username'))
-    email = normalise_email(request.form.get('email'))
-    password = request.form.get('password') or ''
-    confirm_password = request.form.get('confirm_password') or ''
+    form = SignupForm()
 
-    if not username or not email or not password:
-        flash('Username, email, and password are required.', 'danger')
+    if not form.validate_on_submit():
+
+        flash(
+            'Please check your sign up details and try again.',
+            'danger'
+        )
+
         return redirect(url_for('landing'))
 
-    if '@' not in email or '.' not in email:
-        flash('Please enter a valid email address.', 'danger')
-        return redirect(url_for('landing'))
+    username = normalise_username(
+        form.username.data
+    )
 
-    if len(password) < 8:
-        flash('Password must be at least 8 characters long.', 'danger')
-        return redirect(url_for('landing'))
+    email = normalise_email(
+        form.email.data
+    )
 
-    if password != confirm_password:
-        flash('Passwords do not match.', 'danger')
-        return redirect(url_for('landing'))
+    password = form.password.data
 
     existing_user = db.session.query(User).filter(
-        or_(User.email == email, User.username == username)
+        or_(
+            User.email == email,
+            User.username == username
+        )
     ).first()
 
     if existing_user:
+
         if existing_user.email == email:
-            flash('An account with that email already exists. Please log in.', 'danger')
+
+            flash(
+                'An account with that email already exists.',
+                'danger'
+            )
+
         else:
-            flash('That username is already taken.', 'danger')
+
+            flash(
+                'That username is already taken.',
+                'danger'
+            )
+
         return redirect(url_for('landing'))
 
-    user = User(email=email, username=username)
+    user = User(
+        email=email,
+        username=username
+    )
+
     user.set_password(password)
+
     db.session.add(user)
+
     db.session.commit()
 
     login_user(user)
-    flash('Account created successfully. Welcome to MyCal!', 'success')
+
+    flash(
+        'Account created successfully.',
+        'success'
+    )
+
     return redirect(url_for('calendar'))
 
 
 @app.route('/login', methods=['POST'])
 def login():
+
     if current_user.is_authenticated:
         return redirect(url_for('calendar'))
 
-    identifier = (request.form.get('identifier') or '').strip()
-    password = request.form.get('password') or ''
-    remember = request.form.get('remember') == 'on'
+    form = LoginForm()
 
-    if not identifier or not password:
-        flash('Email/username and password are required.', 'danger')
+    if not form.validate_on_submit():
+
+        flash(
+            'Invalid form submission. Please try again.',
+            'danger'
+        )
+
         return redirect(url_for('landing'))
 
+    identifier = form.identifier.data.strip()
+
+    password = form.password.data or ''
+
+    remember = form.remember.data
+
     user = db.session.query(User).filter(
-        or_(User.email == identifier.lower(), User.username == identifier)
+        or_(
+            User.email == identifier.lower(),
+            User.username == identifier
+        )
     ).first()
 
     if not user or not user.check_password(password):
-        flash('Invalid login details. Please try again.', 'danger')
+
+        flash(
+            'Invalid login details. Please try again.',
+            'danger'
+        )
+
         return redirect(url_for('landing'))
 
     login_user(user, remember=remember)
-    flash('Logged in successfully.', 'success')
-    return redirect(url_for('calendar'))
 
+    flash(
+        'Logged in successfully.',
+        'success'
+    )
+
+    return redirect(url_for('calendar'))
 
 @app.route('/logout', methods=['POST'])
 @login_required
