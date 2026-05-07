@@ -763,3 +763,121 @@ input[type="file"]:focus {
     align-items: flex-start;
   }
 }
+
+.friends-page {
+  padding: 24px;
+}
+
+.friends-header {
+  margin-bottom: 24px;
+}
+
+.friends-header h1 {
+  margin-bottom: 6px;
+}
+
+.friends-header p,
+.friends-muted {
+  color: #6b7280;
+}
+
+.friends-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.friends-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.friends-card h2 {
+  font-size: 1.15rem;
+  margin-bottom: 12px;
+}
+
+.friends-input {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.friends-input:focus {
+  border-color: #6366f1;
+}
+
+.friends-results,
+.friends-list {
+  margin-top: 12px;
+}
+
+.friend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #ffffff;
+}
+
+.friend-row:hover {
+  background: #f9fafb;
+}
+
+.friend-row.selected {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.friends-small-btn,
+.friends-primary-btn,
+.friends-remove-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.friends-small-btn {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.friends-primary-btn {
+  width: 100%;
+  margin-top: 12px;
+  background: #4f46e5;
+  color: white;
+  font-weight: 600;
+}
+
+.friends-remove-btn {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.calendar-card {
+  margin-top: 12px;
+}
+
+#friendsAvailabilityCalendar {
+  margin-top: 14px;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+@media (max-width: 1000px) {
+  .friends-grid {
+    grid-template-columns: 1fr;
+  }
+}
