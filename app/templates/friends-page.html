@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
-
+{% block title %}Friends{% endblock %}
+{% block head %} {% endblock %}
 {% block content %}
 <div class="friends-page">
   <div class="friends-header">
@@ -40,8 +41,9 @@
     <div id="friendsAvailabilityCalendar"></div>
   </section>
 </div>
+{% endblock %}
 
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+{% block javascript %}
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script src="{{ url_for('static', filename='friends.js') }}"></script>
 {% endblock %}
