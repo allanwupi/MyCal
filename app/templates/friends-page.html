@@ -1,39 +1,47 @@
 {% extends "layout.html" %}
-{% block title %}Friends{% endblock %}
-{% block head %} {% endblock %}
+
 {% block content %}
-<div class="section-title">
-  <h2>Friends</h2>
-  <p>See people you can share calendars and plans with.</p>
-</div>
-<div class="glass-card">
-  <div class="friends-grid">
-    <div class="friend-card">
-      <div class="friend-avatar">JS</div>
-      <div class="friend-meta">
-        <h4>John Smith</h4>
-        <p>Available for shared planning</p>
-      </div>
-    </div>
-
-    <div class="friend-card">
-      <div class="friend-avatar">SL</div>
-      <div class="friend-meta">
-        <h4>Sarah Lee</h4>
-        <p>Weekly study planner</p>
-      </div>
-    </div>
-
-    <div class="friend-card">
-      <div class="friend-avatar">AT</div>
-      <div class="friend-meta">
-        <h4>Alex Tan</h4>
-        <p>Workout and event coordination</p>
-      </div>
-    </div>
+<div class="friends-page">
+  <div class="friends-header">
+    <h1>Friends</h1>
+    <p>Search, add friends, and compare weekly availability.</p>
   </div>
-</div>
-{% endblock %}
-{% block javascript %}
 
+  <div class="friends-grid">
+    <section class="friends-card">
+      <h2>Search Users</h2>
+      <input
+        type="text"
+        id="friendSearchInput"
+        class="friends-input"
+        placeholder="Search by username..."
+      >
+      <div id="friendSearchResults" class="friends-results"></div>
+    </section>
+
+    <section class="friends-card">
+      <h2>Your Friends</h2>
+      <p class="friends-muted">Select up to 3 friends to compare.</p>
+      <div id="friendsList" class="friends-list"></div>
+    </section>
+
+    <section class="friends-card">
+      <h2>Selected Friends</h2>
+      <div id="selectedFriendsList" class="friends-list"></div>
+      <button id="compareFriendsBtn" class="friends-primary-btn">
+        Compare Availability
+      </button>
+    </section>
+  </div>
+
+  <section class="friends-card calendar-card">
+    <h2>Weekly Availability</h2>
+    <p class="friends-muted">Green = everyone is free, red = someone is busy.</p>
+    <div id="friendsAvailabilityCalendar"></div>
+  </section>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="{{ url_for('static', filename='friends.js') }}"></script>
 {% endblock %}
