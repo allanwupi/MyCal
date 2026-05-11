@@ -117,7 +117,9 @@ document.addEventListener('DOMContentLoaded', function () {
   const eventDetailsModal = new bootstrap.Modal(eventDetailsModalElement);
 
   const detailsTitle = document.getElementById('detailsTitle');
+  const detailsTimeLabel = document.getElementById('detailsTimeLabel');
   const detailsStart = document.getElementById('detailsStart');
+  const detailsEndWrapper = document.getElementById('detailsEndWrapper');
   const detailsEnd = document.getElementById('detailsEnd');
   const detailsLocation = document.getElementById('detailsLocation');
   const detailsDescription = document.getElementById('detailsDescription');
@@ -193,19 +195,39 @@ document.addEventListener('DOMContentLoaded', function () {
       const event = info.event;
       const start = formatDisplayDate(event.start);
       const end = event.end ? formatDisplayDate(event.end) : start;
+      const isTask = event.extendedProps.isTask;
+      const due = formatDisplayDate(event.end || event.start);
 
       detailsTitle.textContent = event.title;
-      detailsStart.textContent = start;
-      detailsEnd.textContent = end;
-      detailsLocation.textContent = event.extendedProps.location || 'No location provided';
-      detailsDescription.textContent = event.extendedProps.description || 'No description provided';
 
-      if (event.extendedProps.isTask) {
+      if (isTask) {
+        detailsTimeLabel.textContent = 'Due:';
+        detailsStart.textContent = due;
         detailsTaskStatusWrapper.style.display = 'block';
         detailsTaskStatus.textContent = event.extendedProps.taskStatus || 'No status provided';
-      } else {
+
+        detailsEnd.textContent = '';
+        detailsLocation.textContent = '';
+        detailsDescription.textContent = '';
+
+        detailsEnd.parentElement.style.display = 'none';
+        detailsLocation.parentElement.style.display = 'none';
+        detailsDescription.parentElement.style.display = 'none';
+      } 
+      else {
+        detailsTimeLabel.textContent = 'Start:';
+        detailsStart.textContent = start;
+        detailsEnd.textContent = end;
+        
+        detailsLocation.textContent = event.extendedProps.location || 'No location provided';
+        detailsDescription.textContent = event.extendedProps.description || 'No description provided';
+
         detailsTaskStatusWrapper.style.display = 'none';
         detailsTaskStatus.textContent = '';
+
+        detailsEnd.parentElement.style.display = 'block';
+        detailsLocation.parentElement.style.display = 'block';
+        detailsDescription.parentElement.style.display = 'block';
       }
 
       tooltip.style.display = 'none';
