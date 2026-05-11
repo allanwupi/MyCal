@@ -1,8 +1,7 @@
 {% extends "layout.html" %} {% block title %}Calendar{% endblock %}
 {% block head %} 
-  <!--<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">-->
-  <!-- This CSS resource doesn't exist? I have temporarily removed the link. -->
 {% endblock %}
+
 {% block content %}
 <div
   class="section-title d-flex justify-content-between align-items-center flex-wrap gap-3"
@@ -16,11 +15,13 @@
   </div>
   <button class="primary-btn" id="openEventModalBtn">+ Add Event</button>
 </div>
+
 <div class="glass-card">
   <div id="calendar"></div>
 </div>
 
 <div id="eventTooltip" class="event-tooltip"></div>
+
 <!-- Add Event Modal -->
 <div
   class="modal fade"
@@ -107,7 +108,79 @@
     </div>
   </div>
 </div>
-{% endblock %} {% block javascript %}
+
+<!-- Event Details Modal -->
+<div
+  class="modal fade"
+  id="eventDetailsModal"
+  tabindex="-1"
+  aria-labelledby="eventDetailsModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventDetailsModalLabel">Event Details</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+
+      <div class="modal-body">
+        <h6 id="detailsTitle" class="fw-bold mb-3"></h6>
+
+        <p class="mb-2">
+          <strong>Start:</strong>
+          <span id="detailsStart"></span>
+        </p>
+
+        <p class="mb-2">
+          <strong>End:</strong>
+          <span id="detailsEnd"></span>
+        </p>
+
+        <p class="mb-2">
+          <strong>Location:</strong>
+          <span id="detailsLocation"></span>
+        </p>
+
+        <p class="mb-2">
+          <strong>Details:</strong>
+          <span id="detailsDescription"></span>
+        </p>
+
+        <p class="mb-2" id="detailsTaskStatusWrapper">
+          <strong>Status:</strong>
+          <span id="detailsTaskStatus"></span>
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-secondary rounded-pill px-4"
+          data-bs-dismiss="modal"
+        >
+          Close
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-danger rounded-pill px-4"
+          id="deleteEventBtn"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script src="{{ url_for('static', filename='calendar.js') }}"></script>
 {% endblock %}
