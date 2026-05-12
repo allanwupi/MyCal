@@ -15,13 +15,35 @@ def normalise_username(username):
     return (username or '').strip()
 
 
+def parse_datetime(value):
+    if not value:
+        return None
+
+    if isinstance(value, datetime):
+        return value.replace(tzinfo=None)
+
+    value = str(value).replace('Z', '+00:00')
+    parsed = datetime.fromisoformat(value)
+
+    return parsed.replace(tzinfo=None)
+
+
+def parse_task_status(status):
+    if status == TaskStatus.NOT_STARTED.value:
+        return TaskStatus.NOT_STARTED
+    if status == TaskStatus.IN_PROGRESS.value:
+        return TaskStatus.IN_PROGRESS
+    if status == TaskStatus.COMPLETED.value:
+        return TaskStatus.COMPLETED
+
+    return TaskStatus.NOT_STARTED
+
+
 @app.template_filter('format_datetime')
 def format_datetime(dt):
-    # "o-d", "%-I" is not supported on Windows, so we need to remove leading zeros manually
     d = dt.strftime("%d").lstrip("0")
     I = dt.strftime("%I").lstrip("0")
     return f'{dt.strftime("%b")} {d}, {dt.strftime("%Y")} {I}:{dt.strftime("%M")} {dt.strftime("%p")}'
-    # equivalent to strftime("%b %-d, %Y %-I:%M %p") on Unix-based systems
 
 
 @app.route('/', methods=['GET'])
@@ -70,10 +92,12 @@ def signup():
 
     user = User(email=email, username=username)
     user.set_password(password)
+
     db.session.add(user)
     db.session.commit()
 
     login_user(user)
+
     flash('Account created successfully. Welcome to MyCal!', 'success')
     return redirect(url_for('calendar'))
 
@@ -100,6 +124,7 @@ def login():
         return redirect(url_for('landing'))
 
     login_user(user, remember=remember)
+
     flash('Logged in successfully.', 'success')
     return redirect(url_for('calendar'))
 
@@ -132,7 +157,7 @@ def to_do_list():
     )
 
     return render_template(
-        'to-do-list.html',
+        'todo-page.html',
         tasks=tasks,
         todo_active=True
     )
@@ -140,9 +165,355 @@ def to_do_list():
 
 @app.route('/friends', methods=['GET'])
 @login_required
-def friends_page():
-    return render_template('friends.html', friends_active=True)
+def friends():
+    return render_template('friends-page.html', friends_active=True)
 
+
+@app.route('/imported-calendars', methods=['GET'])
+@login_required
+def imported_calendars():
+    return render_template('import-page.html', import_active=True)
+
+
+# =========================
+# CALENDAR / TASK ROUTES
+# =========================
+
+@app.route('/get-events', methods=['GET'])
+@login_required
+def get_events_old():
+    events = (
+        db.session.query(Event)
+        .filter(Event.owner == current_user.email)
+        .all()
+    )
+
+    return jsonify([event.to_dict() for event in events]), 200
+
+
+@app.route('/api/events', methods=['GET'])
+@login_required
+def get_events():
+    events = (
+        db.session.query(Event)
+        .filter(Event.owner == current_user.email)
+        .all()
+    )
+
+    return jsonify([event.to_dict() for event in events]), 200
+
+
+@app.route('/save/event', methods=['POST'])
+@login_required
+def save_event():
+    data = request.get_json() or {}
+
+    title = data.get('title')
+    start = data.get('start')
+    end = data.get('end') or start
+    location = data.get('location')
+    description = data.get('description')
+    background_color = data.get('backgroundColor') or '#6366f1'
+    event_id = data.get('id')
+
+    if not title or not start or not end:
+        return jsonify({'error': 'Title, start, and end are required'}), 400
+
+    try:
+        start_dt = parse_datetime(start)
+        end_dt = parse_datetime(end)
+    except ValueError:
+        return jsonify({'error': 'Invalid date format'}), 400
+
+    if event_id:
+        event = (
+            db.session.query(Event)
+            .filter_by(id=event_id, owner=current_user.email)
+            .first()
+        )
+
+        if not event:
+            return jsonify({'error': 'Event not found'}), 404
+
+        event.title = title
+        event.start = start_dt
+        event.end = end_dt
+        event.location = location
+        event.description = description
+        event.backgroundColor = background_color
+        event.isTask = False
+        event.taskStatus = None
+    else:
+        event = Event(
+            title=title,
+            start=start_dt,
+            end=end_dt,
+            backgroundColor=background_color,
+            location=location,
+            description=description,
+            isTask=False,
+            taskStatus=None,
+            owner=current_user.email
+        )
+
+        db.session.add(event)
+
+    db.session.commit()
+
+    return jsonify(event.to_dict()), 200
+
+
+@app.route('/save/task', methods=['POST'])
+@login_required
+def save_task():
+    data = request.get_json() or {}
+
+    title = data.get('title')
+    start = data.get('start')
+    end = data.get('end') or start
+    background_color = data.get('backgroundColor') or '#6366f1'
+    task_status = parse_task_status(data.get('taskStatus'))
+    event_id = data.get('id')
+
+    if not title or not start:
+        return jsonify({'error': 'Title and due date are required'}), 400
+
+    try:
+        start_dt = parse_datetime(start)
+        end_dt = parse_datetime(end)
+    except ValueError:
+        return jsonify({'error': 'Invalid date format'}), 400
+
+    if event_id:
+        task = (
+            db.session.query(Event)
+            .filter_by(id=event_id, owner=current_user.email)
+            .first()
+        )
+
+        if not task:
+            return jsonify({'error': 'Task not found'}), 404
+
+        task.title = title
+        task.start = start_dt
+        task.end = end_dt
+        task.backgroundColor = background_color
+        task.isTask = True
+        task.taskStatus = task_status
+    else:
+        task = Event(
+            title=title,
+            start=start_dt,
+            end=end_dt,
+            backgroundColor=background_color,
+            isTask=True,
+            taskStatus=task_status,
+            owner=current_user.email
+        )
+
+        db.session.add(task)
+
+    db.session.commit()
+
+    return jsonify(task.to_dict()), 200
+
+
+@app.route('/delete-event', methods=['POST'])
+@login_required
+def delete_event_old():
+    data = request.get_json() or {}
+    event_id = data.get('id')
+
+    if not event_id:
+        return jsonify({'error': 'Event ID is required'}), 400
+
+    event = (
+        db.session.query(Event)
+        .filter_by(id=event_id, owner=current_user.email)
+        .first()
+    )
+
+    if not event:
+        return jsonify({'error': 'Event not found'}), 404
+
+    db.session.delete(event)
+    db.session.commit()
+
+    return jsonify({'message': 'Event deleted successfully'}), 200
+
+
+@app.route('/update-task-status', methods=['POST'])
+@login_required
+def update_task_status():
+    data = request.get_json() or {}
+    task_id = data.get('id')
+    status = data.get('status')
+
+    if not task_id or not status:
+        return jsonify({'error': 'Task ID and status are required'}), 400
+
+    task = (
+        db.session.query(Event)
+        .filter_by(id=task_id, owner=current_user.email, isTask=True)
+        .first()
+    )
+
+    if not task:
+        return jsonify({'error': 'Task not found'}), 404
+
+    task.taskStatus = parse_task_status(status)
+    db.session.commit()
+
+    return jsonify(task.to_dict()), 200
+
+
+@app.route('/api/events', methods=['POST'])
+@login_required
+def create_event():
+    data = request.get_json() or {}
+
+    if data.get('isTask'):
+        return save_task()
+
+    return save_event()
+
+
+@app.route('/api/events/<int:event_id>', methods=['PUT'])
+@login_required
+def update_event(event_id):
+    event = (
+        db.session.query(Event)
+        .filter_by(id=event_id, owner=current_user.email)
+        .first()
+    )
+
+    if not event:
+        return jsonify({'error': 'Event not found'}), 404
+
+    data = request.get_json() or {}
+
+    if 'title' in data:
+        event.title = data['title']
+
+    if 'start' in data:
+        event.start = parse_datetime(data['start'])
+
+    if 'end' in data:
+        event.end = parse_datetime(data['end'])
+
+    if 'backgroundColor' in data:
+        event.backgroundColor = data['backgroundColor']
+
+    if 'location' in data:
+        event.location = data['location']
+
+    if 'description' in data:
+        event.description = data['description']
+
+    if 'isTask' in data:
+        event.isTask = bool(data['isTask'])
+
+    if 'taskStatus' in data and data['taskStatus']:
+        event.taskStatus = parse_task_status(data['taskStatus'])
+
+    db.session.commit()
+
+    return jsonify(event.to_dict()), 200
+
+
+@app.route('/api/events/<int:event_id>', methods=['DELETE'])
+@login_required
+def delete_event(event_id):
+    event = (
+        db.session.query(Event)
+        .filter_by(id=event_id, owner=current_user.email)
+        .first()
+    )
+
+    if not event:
+        return jsonify({'error': 'Event not found'}), 404
+
+    db.session.delete(event)
+    db.session.commit()
+
+    return jsonify({'message': 'Event deleted'}), 200
+
+
+# =========================
+# IMPORT CALENDAR ROUTE
+# =========================
+
+@app.route('/upload', methods=['POST'])
+@login_required
+def upload_calendar():
+    uploaded_file = request.files.get('file')
+
+    if not uploaded_file:
+        return jsonify({'error': 'No file uploaded'}), 400
+
+    if not uploaded_file.filename.endswith('.ics'):
+        return jsonify({'error': 'Please upload a valid .ics file'}), 400
+
+    try:
+        calendar_data = icalendar.Calendar.from_ical(uploaded_file.read())
+    except Exception:
+        return jsonify({'error': 'Could not read .ics file'}), 400
+
+    imported_count = 0
+
+    for component in calendar_data.walk():
+        if component.name != 'VEVENT':
+            continue
+
+        title = str(component.get('summary', 'Imported Event'))
+
+        start_value = component.get('dtstart')
+        end_value = component.get('dtend')
+
+        if not start_value:
+            continue
+
+        start_dt = start_value.dt
+        end_dt = end_value.dt if end_value else start_dt
+
+        if not isinstance(start_dt, datetime):
+            start_dt = datetime.combine(start_dt, datetime.min.time())
+
+        if not isinstance(end_dt, datetime):
+            end_dt = datetime.combine(end_dt, datetime.min.time())
+
+        start_dt = start_dt.replace(tzinfo=None)
+        end_dt = end_dt.replace(tzinfo=None)
+
+        location = str(component.get('location', ''))
+        description = str(component.get('description', ''))
+
+        event = Event(
+            title=title,
+            start=start_dt,
+            end=end_dt,
+            backgroundColor='#6366f1',
+            location=location,
+            description=description,
+            isTask=False,
+            taskStatus=None,
+            owner=current_user.email
+        )
+
+        db.session.add(event)
+        imported_count += 1
+
+    db.session.commit()
+
+    return jsonify({
+        'message': f'Successfully imported {imported_count} events',
+        'imported_count': imported_count
+    }), 200
+
+
+# =========================
+# FRIENDS API ROUTES
+# =========================
 
 @app.route('/api/users/search', methods=['GET'])
 @login_required
