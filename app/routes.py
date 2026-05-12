@@ -1,10 +1,10 @@
-from flask import flash, jsonify, redirect, render_template, request, url_for
+from flask import flash, jsonify, redirect, render_template, request, url_for, make_response
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import or_
 from app import app, db
 from app.models import Event, TaskStatus, User
 from datetime import datetime
-import icalendar
+from icalendar import Calendar, Event as ICalEvent
 
 
 def normalise_email(email):
@@ -143,13 +143,14 @@ def imported_calendars():
 
 
 @app.route('/upload', methods=['POST'])
+@login_required
 def upload():
     file = request.files['file']
     if not file or not file.filename.endswith('.ics'):
         return {"error": "Invalid file"}, 400
     if not(file.filename):
         return {"error": "No file provided"}, 400
-    cal = icalendar.Calendar.from_ical(file.read())
+    cal = Calendar.from_ical(file.read())
     count = 0
     seen = set()
     events = []
@@ -173,6 +174,49 @@ def upload():
             count += 1
     db.session.commit()
     return jsonify([e.to_dict() for e in events]), 200
+
+@app.route('/export/ics', methods=['GET'])
+@login_required
+def export_ics():
+    cal = Calendar()
+    cal.add('prodid', '-//My Calendar Export//')
+    cal.add('version', '2.0')
+
+    events = Event.query.filter_by(owner=current_user.email).all()
+
+    if not events:
+        return jsonify({'error': 'No events to export'}), 400
+
+    for e in events:
+        ical_event = ICalEvent()
+
+        ical_event.add('summary', e.title)
+
+        # Ensure datetime objects (adjust if stored differently)
+        ical_event.add('dtstart', e.start)
+        if e.end:
+            ical_event.add('dtend', e.end)
+
+        if e.location:
+            ical_event.add('location', e.location)
+
+        if e.description:
+            ical_event.add('description', e.description)
+
+        ical_event.add('dtstamp', datetime.utcnow())
+
+        # Unique ID helps calendar apps deduplicate
+        ical_event.add('uid', f"{e.id}@myapp")
+
+        cal.add_component(ical_event)
+
+    ics_data = cal.to_ical()
+
+    response = make_response(ics_data)
+    response.headers['Content-Type'] = 'text/calendar'
+    response.headers['Content-Disposition'] = 'attachment; filename=calendar.ics'
+
+    return response
 
  
 @app.route('/get-events', methods=['GET'])
