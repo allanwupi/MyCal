@@ -31,3 +31,38 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     // const data = await res.json();
     // console.log(data.events);
 });
+
+document.getElementById("exportBtn").addEventListener("click", async () => {
+  fetch("/export/ics", {
+    method: "GET"
+  })
+  .then(response => {
+    if (!response.ok) {
+      return response.json().then(data => {
+        throw new Error(data.error || "Export failed");
+      });
+    }
+
+    return response.blob(); // important for file download
+  })
+
+  .then(blob => {
+    if (!blob || blob.size === 0) {
+      throw new Error("Export file is empty");
+    }
+    
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "calendar.ics";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+  })
+  .catch(error => {
+    alert("Error exporting calendar: " + error.message);
+  });
+});

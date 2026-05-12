@@ -3,7 +3,7 @@
 {% block head %} {% endblock %}
 {% block content %}
 <div class="section-title">
-  <h2>Import Calendar</h2>
+  <h2>Import/Export Calendar</h2>
   <p>Upload calendar files so events can be added into your app later.</p>
 </div>
 <div class="glass-card">
@@ -11,6 +11,8 @@
     <div class="import-row">
       <input type="file" id="fileInput" accept=".ics" />
       <button class="primary-btn" type="submit">Upload</button>
+
+      <button class="primary-btn" id="exportBtn", type="button">Export Calendar as .ics</button>
     </div>
   </form>
 
