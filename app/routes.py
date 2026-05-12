@@ -2,7 +2,7 @@ from flask import flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import or_
 from app import app, db
-from app.models import Event, TaskStatus, User
+from app.models import Event, TaskStatus, User, Friendship
 from datetime import datetime
 import icalendar
 

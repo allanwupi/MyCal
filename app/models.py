@@ -4,6 +4,7 @@ import enum
 from flask_login import UserMixin
 from sqlalchemy import Enum
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import Enum, UniqueConstraint, CheckConstraint
 
 
 class TaskStatus(enum.Enum):
@@ -27,6 +28,56 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+class Friendship(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    requester_email = db.Column(
+        db.String(120),
+        db.ForeignKey(User.email),
+        nullable=False
+    )
+
+    addressee_email = db.Column(
+        db.String(120),
+        db.ForeignKey(User.email),
+        nullable=False
+    )
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    requester = db.relationship(
+        'User',
+        foreign_keys=[requester_email],
+        backref='sent_friendships'
+    )
+
+    addressee = db.relationship(
+        'User',
+        foreign_keys=[addressee_email],
+        backref='received_friendships'
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            'requester_email',
+            'addressee_email',
+            name='unique_friendship'
+        ),
+        CheckConstraint(
+            'requester_email != addressee_email',
+            name='no_self_friendship'
+        ),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'requester_email': self.requester_email,
+            'requester_username': self.requester.username,
+            'addressee_email': self.addressee_email,
+            'addressee_username': self.addressee.username,
+            'created_at': self.created_at.isoformat()
+        }
 
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
