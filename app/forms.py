@@ -6,13 +6,15 @@ from wtforms.validators import DataRequired, Email, Length, EqualTo
 class LoginForm(FlaskForm):
 
     identifier = StringField(
-        'Identifier',
-        validators=[DataRequired()]
+        'Email or username',
+        validators=[DataRequired()],
+        render_kw={'placeholder': 'you@example.com'}
     )
 
     password = PasswordField(
         'Password',
-        validators=[DataRequired()]
+        validators=[DataRequired()],
+        render_kw={'placeholder': 'Enter your password'}
     )
 
     remember = BooleanField('Remember Me')
@@ -22,7 +24,8 @@ class SignupForm(FlaskForm):
 
     username = StringField(
         'Username',
-        validators=[DataRequired()]
+        validators=[DataRequired()],
+        render_kw={'placeholder': 'Choose a username'}
     )
 
     email = StringField(
@@ -30,7 +33,8 @@ class SignupForm(FlaskForm):
         validators=[
             DataRequired(),
             Email()
-        ]
+        ],
+        render_kw={'placeholder': 'you@example.com'}
     )
 
     password = PasswordField(
@@ -38,13 +42,15 @@ class SignupForm(FlaskForm):
         validators=[
             DataRequired(),
             Length(min=8)
-        ]
+        ],
+        render_kw={'placeholder': 'At least 8 characters'}
     )
 
     confirm_password = PasswordField(
-        'Confirm Password',
+        'Confirm password',
         validators=[
             DataRequired(),
             EqualTo('password')
-        ]
+        ],
+        render_kw={'placeholder': 'Re-enter password'}
     )
