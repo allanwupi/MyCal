@@ -10,17 +10,19 @@
   <div>
     <h2>Calendar</h2>
     <p>
-      View your schedule by month, week, or day and hover events for extra
-      details.
+      View your schedule by month, week, or day and click events to see details
+      or delete them.
     </p>
   </div>
   <button class="primary-btn" id="openEventModalBtn">+ Add Event</button>
 </div>
+
 <div class="glass-card">
   <div id="calendar"></div>
 </div>
 
 <div id="eventTooltip" class="event-tooltip"></div>
+
 <!-- Add Event Modal -->
 <div
   class="modal fade"
@@ -107,7 +109,79 @@
     </div>
   </div>
 </div>
-{% endblock %} {% block javascript %}
+
+<!-- Event Details Modal -->
+<div
+  class="modal fade"
+  id="eventDetailsModal"
+  tabindex="-1"
+  aria-labelledby="eventDetailsModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header">
+        <h5 class="modal-title" id="eventDetailsModalLabel">Event Details</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+
+      <div class="modal-body">
+        <h5 id="detailsTitle" class="mb-3"></h5>
+
+        <p class="mb-2">
+          <strong id="detailsStartLabel">Start:</strong>
+          <span id="detailsStart"></span>
+        </p>
+
+        <p class="mb-2" id="detailsEndRow">
+          <strong>End:</strong>
+          <span id="detailsEnd"></span>
+        </p>
+
+        <p class="mb-2" id="detailsStatusRow">
+          <strong>Status:</strong>
+          <span id="detailsStatus"></span>
+        </p>
+
+        <p class="mb-2" id="detailsLocationRow">
+          <strong>Location:</strong>
+          <span id="detailsLocation"></span>
+        </p>
+
+        <p class="mb-0" id="detailsDescriptionRow">
+          <strong>Details:</strong>
+          <span id="detailsDescription"></span>
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="btn btn-secondary rounded-pill px-4"
+          data-bs-dismiss="modal"
+        >
+          Close
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-danger rounded-pill px-4"
+          id="deleteEventBtn"
+        >
+          Delete Event
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script src="{{ url_for('static', filename='calendar.js') }}"></script>
 {% endblock %}

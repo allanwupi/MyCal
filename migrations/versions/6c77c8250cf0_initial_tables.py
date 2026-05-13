@@ -1,8 +1,8 @@
-"""new user and event tables
+"""initial tables
 
-Revision ID: 55b7d555f0c3
+Revision ID: 6c77c8250cf0
 Revises: 
-Create Date: 2026-05-05 13:06:59.575812
+Create Date: 2026-05-13 01:52:08.124988
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '55b7d555f0c3'
+revision = '6c77c8250cf0'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade():
     op.create_table('user',
     sa.Column('email', sa.String(length=120), nullable=False),
     sa.Column('username', sa.String(length=50), nullable=False),
-    sa.Column('password_hash', sa.String(length=128), nullable=False),
+    sa.Column('password_hash', sa.String(length=256), nullable=False),
     sa.PrimaryKeyConstraint('email'),
     sa.UniqueConstraint('username')
     )
@@ -34,8 +34,8 @@ def upgrade():
     sa.Column('location', sa.String(length=200), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('isTask', sa.Boolean(), nullable=True),
-    sa.Column('taskStatus', sa.String(length=20), nullable=True),
-    sa.Column('owner', sa.String(length=120), nullable=True),
+    sa.Column('taskStatus', sa.Enum('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', name='taskstatus'), nullable=True),
+    sa.Column('owner', sa.String(length=120), nullable=False),
     sa.ForeignKeyConstraint(['owner'], ['user.email'], ),
     sa.PrimaryKeyConstraint('id')
     )

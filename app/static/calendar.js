@@ -1,6 +1,7 @@
 // Wrapper for server request to update event time and/or duration, given a JSON payload
 async function updateEventInfo(isTask, payload, calendar) {
   const route = isTask ? '/save/task' : '/save/event';
+
   fetch(route, {
     method: 'POST',
     headers: {
@@ -8,50 +9,71 @@ async function updateEventInfo(isTask, payload, calendar) {
     },
     body: JSON.stringify(payload)
   })
-  .then(response => {
-    if (!response.ok) {
-      return response.json().then(data => {
-        throw new Error(data.error || 'Failed to save event');
-      });
-    }
-    // Refresh calendar to ensure server values are shown
-    calendar.refetchEvents();
-  })
-  .catch(error => {
-    alert('Error saving event: ' + error.message);
-    calendar.refetchEvents();
-  });
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Failed to save event');
+        });
+      }
+
+      // Refresh calendar to ensure server values are shown
+      calendar.refetchEvents();
+    })
+    .catch(error => {
+      alert('Error saving event: ' + error.message);
+      calendar.refetchEvents();
+    });
 }
 
 // Helper function to convert FullCalendar Event object into plain JSON
 function eventToJson(event, isTask) {
-  // Note: we need to format dates as ISO strings (local time, not UTC) to preserve the original time.
+  // Format dates as ISO strings in local time, not UTC
   function formatLocalISO(date) {
     if (!date) return null;
+
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
+
     return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
   }
+
   const payload = {
     id: event.id,
     title: event.title,
     start: event.start ? formatLocalISO(event.start) : null,
-    end: isTask ? (event.start ? formatLocalISO(event.start) : null) : (event.end ? formatLocalISO(event.end) : null),
-    location: event.extendedProps && event.extendedProps.location ? event.extendedProps.location : '',
-    description: event.extendedProps && event.extendedProps.description ? event.extendedProps.description : '',
-    backgroundColor: event.backgroundColor || (event.extendedProps && event.extendedProps.backgroundColor) || '#6366f1',
+    end: isTask
+      ? event.start
+        ? formatLocalISO(event.start)
+        : null
+      : event.end
+        ? formatLocalISO(event.end)
+        : null,
+    location:
+      event.extendedProps && event.extendedProps.location
+        ? event.extendedProps.location
+        : '',
+    description:
+      event.extendedProps && event.extendedProps.description
+        ? event.extendedProps.description
+        : '',
+    backgroundColor:
+      event.backgroundColor ||
+      (event.extendedProps && event.extendedProps.backgroundColor) ||
+      '#6366f1',
     isTask: isTask,
     taskStatus: isTask ? event.extendedProps.taskStatus : undefined
   };
+
   return payload;
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  const CALENDAR_HEIGHT_RATIO = 0.9; // Calendar will take up 90% of the viewport height
+  const CALENDAR_HEIGHT_RATIO = 0.9;
+
   const calendarEl = document.getElementById('calendar');
   const tooltip = document.getElementById('eventTooltip');
 
@@ -68,10 +90,133 @@ document.addEventListener('DOMContentLoaded', function () {
   const addEventModalElement = document.getElementById('addEventModal');
   const addEventModal = new bootstrap.Modal(addEventModalElement);
 
+  const eventDetailsModalElement = document.getElementById('eventDetailsModal');
+  const eventDetailsModal = new bootstrap.Modal(eventDetailsModalElement);
+
+  const detailsTitle = document.getElementById('detailsTitle');
+  const detailsStartLabel = document.getElementById('detailsStartLabel');
+  const detailsStart = document.getElementById('detailsStart');
+  const detailsEndRow = document.getElementById('detailsEndRow');
+  const detailsEnd = document.getElementById('detailsEnd');
+  const detailsStatusRow = document.getElementById('detailsStatusRow');
+  const detailsStatus = document.getElementById('detailsStatus');
+  const detailsLocationRow = document.getElementById('detailsLocationRow');
+  const detailsLocation = document.getElementById('detailsLocation');
+  const detailsDescriptionRow = document.getElementById('detailsDescriptionRow');
+  const detailsDescription = document.getElementById('detailsDescription');
+  const deleteEventBtn = document.getElementById('deleteEventBtn');
+
+  let selectedEvent = null;
+
+  function formatDateTime(date) {
+    if (!date) return 'N/A';
+
+    return date.toLocaleString([], {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+  }
+
+  function showEventDetails(event) {
+    selectedEvent = event;
+
+    const isTask = event.extendedProps.isTask;
+    const start = formatDateTime(event.start);
+    const end = event.end ? formatDateTime(event.end) : start;
+    const location = event.extendedProps.location || 'No location provided';
+    const description = event.extendedProps.description || 'No details provided';
+    const taskStatus = event.extendedProps.taskStatus || 'No status provided';
+
+    detailsTitle.textContent = event.title || 'Untitled';
+
+    if (isTask) {
+      detailsStartLabel.textContent = 'Due:';
+      detailsStart.textContent = start;
+
+      detailsEndRow.style.display = 'none';
+
+      detailsStatusRow.style.display = 'block';
+      detailsStatus.textContent = taskStatus;
+
+      detailsLocationRow.style.display = 'none';
+      detailsDescriptionRow.style.display = 'none';
+
+      deleteEventBtn.textContent = 'Delete Task';
+    } else {
+      detailsStartLabel.textContent = 'Start:';
+      detailsStart.textContent = start;
+
+      detailsEndRow.style.display = 'block';
+      detailsEnd.textContent = end;
+
+      detailsStatusRow.style.display = 'none';
+
+      detailsLocationRow.style.display = 'block';
+      detailsLocation.textContent = location;
+
+      detailsDescriptionRow.style.display = 'block';
+      detailsDescription.textContent = description;
+
+      deleteEventBtn.textContent = 'Delete Event';
+    }
+
+    tooltip.style.display = 'none';
+    eventDetailsModal.show();
+  }
+
+  async function deleteSelectedEvent(calendar) {
+    if (!selectedEvent) {
+      alert('No event selected.');
+      return;
+    }
+
+    const isTask = selectedEvent.extendedProps.isTask;
+    const itemType = isTask ? 'task' : 'event';
+
+    const confirmed = confirm(
+      `Warning: this ${itemType} is going to be deleted. Are you sure you want to continue?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    deleteEventBtn.disabled = true;
+    deleteEventBtn.textContent = isTask ? 'Deleting Task...' : 'Deleting Event...';
+
+    try {
+      const response = await fetch('/delete-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: selectedEvent.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete event');
+      }
+
+      selectedEvent.remove();
+      selectedEvent = null;
+      eventDetailsModal.hide();
+      calendar.refetchEvents();
+    } catch (error) {
+      alert('Error deleting event: ' + error.message);
+    } finally {
+      deleteEventBtn.disabled = false;
+      deleteEventBtn.textContent = isTask ? 'Delete Task' : 'Delete Event';
+    }
+  }
+
   const calendar = new FullCalendar.Calendar(calendarEl, {
     fixedWeekCount: false,
     initialView: 'dayGridMonth',
-    height: window.innerHeight*CALENDAR_HEIGHT_RATIO,
+    height: window.innerHeight * CALENDAR_HEIGHT_RATIO,
     scrollTime: '08:00:00',
     allDaySlot: false,
     headerToolbar: {
@@ -85,23 +230,39 @@ document.addEventListener('DOMContentLoaded', function () {
     events: '/get-events',
 
     // Allow user to drag, drop and resize events on the calendar, updating the database.
-    eventChange: function(changeInfo) {
+    eventChange: function (changeInfo) {
       const event = changeInfo.event;
       const isTask = event.extendedProps.isTask;
       const payload = eventToJson(event, isTask);
+
       updateEventInfo(isTask, payload, calendar);
     },
 
-    eventMouseEnter: function(info) {
+    eventClick: function (info) {
+      info.jsEvent.preventDefault();
+      showEventDetails(info.event);
+    },
+
+    eventMouseEnter: function (info) {
       const event = info.event;
       const start = event.start
-        ? event.start.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+        ? event.start.toLocaleString([], {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+          })
         : 'N/A';
-      const end = event.end // FullCalendar will set the end date to None if it is the same as the start date
-        ? event.end.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+
+      const end = event.end
+        ? event.end.toLocaleString([], {
+            dateStyle: 'medium',
+            timeStyle: 'short'
+          })
         : start;
+
       const location = event.extendedProps.location || 'No location provided';
-      const description = event.extendedProps.description || 'No description provided';
+      const description =
+        event.extendedProps.description || 'No description provided';
+
       if (event.extendedProps.isTask) {
         tooltip.innerHTML = `
           <strong>${event.title}</strong>
@@ -110,29 +271,31 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
       } else {
         tooltip.innerHTML = `
-        <strong>${event.title}</strong>
-        <div><span class="tooltip-label">Start:</span> ${start}</div>
-        <div><span class="tooltip-label">End:</span> ${end}</div>
-        <div><span class="tooltip-label">Location:</span> ${location}</div>
-        <div><span class="tooltip-label">Details:</span> ${description}</div>
-      `;
+          <strong>${event.title}</strong>
+          <div><span class="tooltip-label">Start:</span> ${start}</div>
+          <div><span class="tooltip-label">End:</span> ${end}</div>
+          <div><span class="tooltip-label">Location:</span> ${location}</div>
+          <div><span class="tooltip-label">Details:</span> ${description}</div>
+        `;
       }
+
       tooltip.style.display = 'block';
     },
-    eventMouseLeave: function() {
+
+    eventMouseLeave: function () {
       tooltip.style.display = 'none';
     }
   });
 
   calendar.render();
 
-  calendarEl.addEventListener('mousemove', function(e) {
-    tooltip.style.left = (e.pageX + 16) + 'px';
-    tooltip.style.top = (e.pageY + 16) + 'px';
+  calendarEl.addEventListener('mousemove', function (e) {
+    tooltip.style.left = e.pageX + 16 + 'px';
+    tooltip.style.top = e.pageY + 16 + 'px';
   });
 
-  window.addEventListener('resize', function() {
-    calendar.setOption('height', window.innerHeight*CALENDAR_HEIGHT_RATIO);
+  window.addEventListener('resize', function () {
+    calendar.setOption('height', window.innerHeight * CALENDAR_HEIGHT_RATIO);
   });
 
   openEventModalBtn.addEventListener('click', () => {
@@ -141,6 +304,8 @@ document.addEventListener('DOMContentLoaded', function () {
     eventEndInput.value = '';
     eventLocationInput.value = '';
     eventDescriptionInput.value = '';
+    eventIsTaskInput.checked = false;
+
     addEventModal.show();
   });
 
@@ -164,17 +329,14 @@ document.addEventListener('DOMContentLoaded', function () {
       alert('Please enter the event title, start and end dates/times.');
       return;
     }
+
     if (!isTask && end <= start) {
       alert('End date/time must be after the start date/time.');
       return;
     }
 
-    // Disable button during submission
     saveEventBtn.disabled = true;
     saveEventBtn.textContent = 'Saving...';
-
-    // Send to server for validation and storage
-    let route = isTask ? '/save/task' : '/save/event';
 
     const payload = {
       title: title,
@@ -188,10 +350,13 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     updateEventInfo(isTask, payload, calendar);
-    // Re-enable button and hide menu
+
     saveEventBtn.disabled = false;
     saveEventBtn.textContent = 'Save Event';
     addEventModal.hide();
+  });
 
+  deleteEventBtn.addEventListener('click', () => {
+    deleteSelectedEvent(calendar);
   });
 });

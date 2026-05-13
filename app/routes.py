@@ -1,10 +1,11 @@
-from flask import flash, jsonify, redirect, render_template, request, url_for
+from flask import flash, jsonify, redirect, render_template, request, url_for, make_response
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import or_
 from app import app, db
 from app.models import Event, TaskStatus, User
 from datetime import datetime
-import icalendar
+from icalendar import Calendar, Event as ICalEvent
+from app.models import Event, TaskStatus, User, Friendship, FriendshipStatus
 
 
 def normalise_email(email):
@@ -143,13 +144,14 @@ def imported_calendars():
 
 
 @app.route('/upload', methods=['POST'])
+@login_required
 def upload():
     file = request.files['file']
     if not file or not file.filename.endswith('.ics'):
         return {"error": "Invalid file"}, 400
     if not(file.filename):
         return {"error": "No file provided"}, 400
-    cal = icalendar.Calendar.from_ical(file.read())
+    cal = Calendar.from_ical(file.read())
     count = 0
     seen = set()
     events = []
@@ -173,6 +175,49 @@ def upload():
             count += 1
     db.session.commit()
     return jsonify([e.to_dict() for e in events]), 200
+
+@app.route('/export/ics', methods=['GET'])
+@login_required
+def export_ics():
+    cal = Calendar()
+    cal.add('prodid', '-//My Calendar Export//')
+    cal.add('version', '2.0')
+
+    events = Event.query.filter_by(owner=current_user.email).all()
+
+    if not events:
+        return jsonify({'error': 'No events to export'}), 400
+
+    for e in events:
+        ical_event = ICalEvent()
+
+        ical_event.add('summary', e.title)
+
+        # Ensure datetime objects (adjust if stored differently)
+        ical_event.add('dtstart', e.start)
+        if e.end:
+            ical_event.add('dtend', e.end)
+
+        if e.location:
+            ical_event.add('location', e.location)
+
+        if e.description:
+            ical_event.add('description', e.description)
+
+        ical_event.add('dtstamp', datetime.utcnow())
+
+        # Unique ID helps calendar apps deduplicate
+        ical_event.add('uid', f"{e.id}@myapp")
+
+        cal.add_component(ical_event)
+
+    ics_data = cal.to_ical()
+
+    response = make_response(ics_data)
+    response.headers['Content-Type'] = 'text/calendar'
+    response.headers['Content-Disposition'] = 'attachment; filename=calendar.ics'
+
+    return response
 
  
 @app.route('/get-events', methods=['GET'])
@@ -347,3 +392,208 @@ def delete():
         db.session.rollback()
         print(e)
         return jsonify({'error': 'Internal Server Error'}), 500
+    
+@app.route('/friends', methods=['GET'])
+@login_required
+def friends_page():
+    return render_template('friends-page.html', friends_active=True)
+
+
+@app.route('/api/friends/search', methods=['GET'])
+@login_required
+def search_users():
+    query = request.args.get('query', '').strip()
+
+    if not query:
+        return jsonify([])
+
+    users = User.query.filter(
+        User.email != current_user.email,
+        or_(
+            User.username.ilike(f'%{query}%'),
+            User.email.ilike(f'%{query}%')
+        )
+    ).all()
+
+    results = []
+
+    for user in users:
+        existing_friendship = Friendship.query.filter(
+            or_(
+                db.and_(
+                    Friendship.requester_email == current_user.email,
+                    Friendship.receiver_email == user.email
+                ),
+                db.and_(
+                    Friendship.requester_email == user.email,
+                    Friendship.receiver_email == current_user.email
+                )
+            )
+        ).first()
+
+        friendship_status = None
+
+        if existing_friendship:
+            friendship_status = existing_friendship.status.value
+
+        results.append({
+            'email': user.email,
+            'username': user.username,
+            'friendship_status': friendship_status
+        })
+
+    return jsonify(results)
+
+
+@app.route('/api/friends/send-request', methods=['POST'])
+@login_required
+def send_friend_request():
+    data = request.get_json()
+
+    receiver_email = data.get('receiver_email')
+
+    if receiver_email == current_user.email:
+        return jsonify({'error': 'You cannot add yourself'}), 400
+
+    receiver = User.query.get(receiver_email)
+
+    if not receiver:
+        return jsonify({'error': 'User not found'}), 404
+
+    existing_friendship = Friendship.query.filter(
+        or_(
+            db.and_(
+                Friendship.requester_email == current_user.email,
+                Friendship.receiver_email == receiver_email
+            ),
+            db.and_(
+                Friendship.requester_email == receiver_email,
+                Friendship.receiver_email == current_user.email
+            )
+        )
+    ).first()
+
+    if existing_friendship:
+        return jsonify({'error': 'Friend request already exists'}), 400
+
+    friendship = Friendship(
+        requester_email=current_user.email,
+        receiver_email=receiver_email,
+        status=FriendshipStatus.PENDING
+    )
+
+    db.session.add(friendship)
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Friend request sent successfully'
+    })
+
+
+@app.route('/api/friends/accept-request/<int:friendship_id>', methods=['POST'])
+@login_required
+def accept_friend_request(friendship_id):
+    friendship = Friendship.query.get_or_404(friendship_id)
+
+    if friendship.receiver_email != current_user.email:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    friendship.status = FriendshipStatus.ACCEPTED
+
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Friend request accepted'
+    })
+
+
+@app.route('/api/friends/reject-request/<int:friendship_id>', methods=['POST'])
+@login_required
+def reject_friend_request(friendship_id):
+    friendship = Friendship.query.get_or_404(friendship_id)
+
+    if friendship.receiver_email != current_user.email:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    friendship.status = FriendshipStatus.REJECTED
+
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Friend request rejected'
+    })
+
+
+@app.route('/api/friends/remove/<int:friendship_id>', methods=['DELETE'])
+@login_required
+def remove_friend(friendship_id):
+    friendship = Friendship.query.get_or_404(friendship_id)
+
+    if (
+        friendship.requester_email != current_user.email and
+        friendship.receiver_email != current_user.email
+    ):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    db.session.delete(friendship)
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Friend removed successfully'
+    })
+
+
+@app.route('/api/friends/list', methods=['GET'])
+@login_required
+def get_friends_list():
+    friendships = Friendship.query.filter(
+        or_(
+            Friendship.requester_email == current_user.email,
+            Friendship.receiver_email == current_user.email
+        )
+    ).all()
+
+    accepted_friends = []
+    pending_sent = []
+    pending_received = []
+
+    for friendship in friendships:
+        if friendship.status == FriendshipStatus.ACCEPTED:
+            friend_email = (
+                friendship.receiver_email
+                if friendship.requester_email == current_user.email
+                else friendship.requester_email
+            )
+
+            friend = User.query.get(friend_email)
+
+            accepted_friends.append({
+                'friendship_id': friendship.id,
+                'email': friend.email,
+                'username': friend.username
+            })
+
+        elif friendship.status == FriendshipStatus.PENDING:
+            if friendship.requester_email == current_user.email:
+                receiver = User.query.get(friendship.receiver_email)
+
+                pending_sent.append({
+                    'friendship_id': friendship.id,
+                    'email': receiver.email,
+                    'username': receiver.username
+                })
+
+            elif friendship.receiver_email == current_user.email:
+                requester = User.query.get(friendship.requester_email)
+
+                pending_received.append({
+                    'friendship_id': friendship.id,
+                    'email': requester.email,
+                    'username': requester.username
+                })
+
+    return jsonify({
+        'friends': accepted_friends,
+        'pending_sent': pending_sent,
+        'pending_received': pending_received
+    })
