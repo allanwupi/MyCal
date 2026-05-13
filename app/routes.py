@@ -8,7 +8,6 @@ from datetime import datetime
 import icalendar
 
 
-
 def normalise_email(email):
     return (email or '').strip().lower()
 
@@ -19,7 +18,7 @@ def normalise_username(username):
 
 @app.template_filter('format_datetime')
 def format_datetime(dt):
-    # "o-d", "%-I" is not supported on Windows, so we need to remove leading zeros manually
+    # "%-d", "%-I" is not supported on Windows, so we need to remove leading zeros manually
     d = dt.strftime("&d").lstrip("0")
     I = dt.strftime("%I").lstrip("0")
     return f'{dt.strftime("%b")} {d}, {dt.strftime("%Y")} {I}:{dt.strftime("M")} {dt.strftime("%p")}'
@@ -52,22 +51,20 @@ def signup():
     form = SignupForm()
 
     if not form.validate_on_submit():
-
-        flash(
-            'Please check your sign up details and try again.',
-            'danger'
-        )
-
+        if not form.username.data or not form.email.data or not form.password.data:
+            flash('Username, email, and password are required.', 'danger')
+        elif '@' not in form.email.data or '.' not in form.email.data:
+            flash('Please enter a valid email address.', 'danger')
+        elif len(form.password.data) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+        elif form.password.data != form.confirm_password.data:
+            flash('Passwords do not match.', 'danger')
+        else:
+            flash('Please check your sign up details and try again.', 'danger')
         return redirect(url_for('landing'))
 
-    username = normalise_username(
-        form.username.data
-    )
-
-    email = normalise_email(
-        form.email.data
-    )
-
+    username = normalise_username(form.username.data)
+    email = normalise_email(form.email.data)
     password = form.password.data
 
     existing_user = db.session.query(User).filter(
@@ -78,21 +75,10 @@ def signup():
     ).first()
 
     if existing_user:
-
         if existing_user.email == email:
-
-            flash(
-                'An account with that email already exists.',
-                'danger'
-            )
-
+            flash('An account with that email already exists.', 'danger')
         else:
-
-            flash(
-                'That username is already taken.',
-                'danger'
-            )
-
+            flash('That username is already taken.', 'danger')
         return redirect(url_for('landing'))
 
     user = User(
@@ -101,17 +87,10 @@ def signup():
     )
 
     user.set_password(password)
-
     db.session.add(user)
-
     db.session.commit()
-
     login_user(user)
-
-    flash(
-        'Account created successfully.',
-        'success'
-    )
+    flash('Account created successfully.', 'success')
 
     return redirect(url_for('calendar'))
 
@@ -125,18 +104,11 @@ def login():
     form = LoginForm()
 
     if not form.validate_on_submit():
-
-        flash(
-            'Invalid form submission. Please try again.',
-            'danger'
-        )
-
+        flash('Invalid form submission. Please try again.','danger')
         return redirect(url_for('landing'))
 
     identifier = form.identifier.data.strip()
-
     password = form.password.data or ''
-
     remember = form.remember.data
 
     user = db.session.query(User).filter(
@@ -147,20 +119,12 @@ def login():
     ).first()
 
     if not user or not user.check_password(password):
-
-        flash(
-            'Invalid login details. Please try again.',
-            'danger'
-        )
-
+        flash('Invalid login details. Please try again.','danger')
         return redirect(url_for('landing'))
 
     login_user(user, remember=remember)
 
-    flash(
-        'Logged in successfully.',
-        'success'
-    )
+    flash('Logged in successfully.','success')
 
     return redirect(url_for('calendar'))
 
