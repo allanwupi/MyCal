@@ -1,76 +1,170 @@
-const mockUsers = ["rayhan", "mohammad", "alex", "sarah", "john", "emma"];
-
-let friends = ["rayhan", "mohammad", "alex"];
+let friends = [];
+let pendingSent = [];
+let pendingReceived = [];
 let selectedFriends = [];
 let availabilityCalendar = null;
-
-const mockEvents = {
-  you: [
-    { title: "You busy", start: "2026-05-04T10:00:00", end: "2026-05-04T12:00:00" },
-    { title: "You busy", start: "2026-05-06T14:00:00", end: "2026-05-06T16:00:00" }
-  ],
-  rayhan: [
-    { title: "Rayhan busy", start: "2026-05-04T13:00:00", end: "2026-05-04T15:00:00" },
-    { title: "Rayhan busy", start: "2026-05-07T09:00:00", end: "2026-05-07T11:00:00" }
-  ],
-  mohammad: [
-    { title: "Mohammad busy", start: "2026-05-05T11:00:00", end: "2026-05-05T13:00:00" },
-    { title: "Mohammad busy", start: "2026-05-06T15:00:00", end: "2026-05-06T17:00:00" }
-  ],
-  alex: [
-    { title: "Alex busy", start: "2026-05-04T09:00:00", end: "2026-05-04T10:30:00" },
-    { title: "Alex busy", start: "2026-05-08T12:00:00", end: "2026-05-08T14:00:00" }
-  ]
-};
+let searchDebounceTimer = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   setupFriendSearch();
-  renderFriends();
-  renderSelectedFriends();
   setupAvailabilityCalendar();
+  loadFriendsData();
 
   document
     .getElementById("compareFriendsBtn")
-    .addEventListener("click", updateAvailabilityCalendar);
+    .addEventListener("click", handleCompareAvailabilityClick);
 });
+
+async function apiRequest(url, options = {}) {
+  const response = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    },
+    ...options
+  });
+
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch (error) {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const message = data && data.error
+      ? data.error
+      : "Something went wrong. Please try again.";
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+function setStatusMessage(message) {
+  const statusMessage = document.getElementById("friendsStatusMessage");
+
+  if (statusMessage) {
+    statusMessage.textContent = message;
+  }
+}
+
+function getDisplayName(user) {
+  if (!user) return "Unknown user";
+
+  if (user.username) {
+    return `@${user.username}`;
+  }
+
+  return user.email;
+}
 
 function setupFriendSearch() {
   const input = document.getElementById("friendSearchInput");
-  const results = document.getElementById("friendSearchResults");
 
   input.addEventListener("input", () => {
-    const query = input.value.trim().toLowerCase();
-    results.innerHTML = "";
+    clearTimeout(searchDebounceTimer);
 
-    if (!query) return;
+    searchDebounceTimer = setTimeout(() => {
+      searchUsers(input.value.trim());
+    }, 300);
+  });
+}
 
-    const matches = mockUsers.filter(
-      user => user.includes(query) && !friends.includes(user)
-    );
+async function searchUsers(query) {
+  const results = document.getElementById("friendSearchResults");
+  results.innerHTML = "";
 
-    if (matches.length === 0) {
-      results.innerHTML = `<p class="friends-muted">No users found.</p>`;
-      return;
+  if (!query) {
+    results.innerHTML = `<p class="friends-muted">Type a username or email to search.</p>`;
+    return;
+  }
+
+  results.innerHTML = `<p class="friends-muted">Searching...</p>`;
+
+  try {
+    const users = await apiRequest(`/api/friends/search?query=${encodeURIComponent(query)}`);
+    renderSearchResults(users);
+  } catch (error) {
+    results.innerHTML = `<p class="friends-muted">${error.message}</p>`;
+  }
+}
+
+function renderSearchResults(users) {
+  const results = document.getElementById("friendSearchResults");
+  results.innerHTML = "";
+
+  if (!users || users.length === 0) {
+    results.innerHTML = `<p class="friends-muted">No users found.</p>`;
+    return;
+  }
+
+  users.forEach(user => {
+    const row = document.createElement("div");
+    row.className = "friend-row";
+
+    const label = document.createElement("span");
+    label.textContent = `${getDisplayName(user)} (${user.email})`;
+
+    const button = document.createElement("button");
+    button.className = "friends-small-btn";
+
+    if (user.friendship_status === "accepted") {
+      button.textContent = "Already Friends";
+      button.disabled = true;
+    } else if (user.friendship_status === "pending") {
+      button.textContent = "Pending";
+      button.disabled = true;
+    } else if (user.friendship_status === "rejected") {
+      button.textContent = "Rejected";
+      button.disabled = true;
+    } else {
+      button.textContent = "Add Friend";
+      button.addEventListener("click", () => sendFriendRequest(user.email));
     }
 
-    matches.forEach(user => {
-      const row = document.createElement("div");
-      row.className = "friend-row";
-      row.innerHTML = `
-        <span>@${user}</span>
-        <button class="friends-small-btn">Add</button>
-      `;
-
-      row.querySelector("button").addEventListener("click", () => {
-        friends.push(user);
-        input.value = "";
-        results.innerHTML = "";
-        renderFriends();
-      });
-
-      results.appendChild(row);
-    });
+    row.appendChild(label);
+    row.appendChild(button);
+    results.appendChild(row);
   });
+}
+
+async function sendFriendRequest(receiverEmail) {
+  try {
+    await apiRequest("/api/friends/send-request", {
+      method: "POST",
+      body: JSON.stringify({ receiver_email: receiverEmail })
+    });
+
+    document.getElementById("friendSearchInput").value = "";
+    document.getElementById("friendSearchResults").innerHTML = "";
+    setStatusMessage("Friend request sent successfully.");
+    await loadFriendsData();
+  } catch (error) {
+    setStatusMessage(error.message);
+  }
+}
+
+async function loadFriendsData() {
+  try {
+    const data = await apiRequest("/api/friends/list");
+
+    friends = data.friends || [];
+    pendingSent = data.pending_sent || [];
+    pendingReceived = data.pending_received || [];
+
+    selectedFriends = selectedFriends.filter(selected =>
+      friends.some(friend => friend.email === selected.email)
+    );
+
+    renderFriends();
+    renderPendingSent();
+    renderPendingReceived();
+    renderSelectedFriends();
+  } catch (error) {
+    setStatusMessage(error.message);
+  }
 }
 
 function renderFriends() {
@@ -78,7 +172,7 @@ function renderFriends() {
   list.innerHTML = "";
 
   if (friends.length === 0) {
-    list.innerHTML = `<p class="friends-muted">No friends added yet.</p>`;
+    list.innerHTML = `<p class="friends-muted">No friends yet. Search for users and send requests.</p>`;
     return;
   }
 
@@ -86,21 +180,144 @@ function renderFriends() {
     const row = document.createElement("div");
     row.className = "friend-row";
 
-    row.innerHTML = `
-      <span>@${friend}</span>
-      <button class="friends-small-btn">Select</button>
-    `;
+    const label = document.createElement("span");
+    label.textContent = `${getDisplayName(friend)} (${friend.email})`;
 
-    row.querySelector("button").addEventListener("click", () => {
-      selectFriend(friend);
-    });
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = "8px";
 
+    const selectButton = document.createElement("button");
+    selectButton.className = "friends-small-btn";
+    selectButton.textContent = isSelected(friend.email) ? "Selected" : "Select";
+    selectButton.disabled = isSelected(friend.email);
+    selectButton.addEventListener("click", () => selectFriend(friend));
+
+    const removeButton = document.createElement("button");
+    removeButton.className = "friends-remove-btn";
+    removeButton.textContent = "Remove";
+    removeButton.addEventListener("click", () => removeFriend(friend.friendship_id));
+
+    actions.appendChild(selectButton);
+    actions.appendChild(removeButton);
+
+    row.appendChild(label);
+    row.appendChild(actions);
     list.appendChild(row);
   });
 }
 
+function renderPendingSent() {
+  const list = document.getElementById("outgoingRequestsList");
+  list.innerHTML = "";
+
+  if (pendingSent.length === 0) {
+    list.innerHTML = `<p class="friends-muted">No outgoing requests.</p>`;
+    return;
+  }
+
+  pendingSent.forEach(request => {
+    const row = document.createElement("div");
+    row.className = "friend-row";
+
+    const label = document.createElement("span");
+    label.textContent = `${getDisplayName(request)} (${request.email})`;
+
+    const cancelButton = document.createElement("button");
+    cancelButton.className = "friends-remove-btn";
+    cancelButton.textContent = "Cancel";
+    cancelButton.addEventListener("click", () => removeFriend(request.friendship_id));
+
+    row.appendChild(label);
+    row.appendChild(cancelButton);
+    list.appendChild(row);
+  });
+}
+
+function renderPendingReceived() {
+  const list = document.getElementById("incomingRequestsList");
+  list.innerHTML = "";
+
+  if (pendingReceived.length === 0) {
+    list.innerHTML = `<p class="friends-muted">No incoming requests.</p>`;
+    return;
+  }
+
+  pendingReceived.forEach(request => {
+    const row = document.createElement("div");
+    row.className = "friend-row";
+
+    const label = document.createElement("span");
+    label.textContent = `${getDisplayName(request)} (${request.email})`;
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = "8px";
+
+    const acceptButton = document.createElement("button");
+    acceptButton.className = "friends-small-btn";
+    acceptButton.textContent = "Accept";
+    acceptButton.addEventListener("click", () => acceptRequest(request.friendship_id));
+
+    const rejectButton = document.createElement("button");
+    rejectButton.className = "friends-remove-btn";
+    rejectButton.textContent = "Reject";
+    rejectButton.addEventListener("click", () => rejectRequest(request.friendship_id));
+
+    actions.appendChild(acceptButton);
+    actions.appendChild(rejectButton);
+
+    row.appendChild(label);
+    row.appendChild(actions);
+    list.appendChild(row);
+  });
+}
+
+async function acceptRequest(friendshipId) {
+  try {
+    await apiRequest(`/api/friends/accept-request/${friendshipId}`, {
+      method: "POST"
+    });
+
+    setStatusMessage("Friend request accepted.");
+    await loadFriendsData();
+  } catch (error) {
+    setStatusMessage(error.message);
+  }
+}
+
+async function rejectRequest(friendshipId) {
+  try {
+    await apiRequest(`/api/friends/reject-request/${friendshipId}`, {
+      method: "POST"
+    });
+
+    setStatusMessage("Friend request rejected.");
+    await loadFriendsData();
+  } catch (error) {
+    setStatusMessage(error.message);
+  }
+}
+
+async function removeFriend(friendshipId) {
+  const confirmed = confirm("Are you sure you want to remove this friend or request?");
+
+  if (!confirmed) return;
+
+  try {
+    await apiRequest(`/api/friends/remove/${friendshipId}`, {
+      method: "DELETE"
+    });
+
+    setStatusMessage("Friend or request removed.");
+    await loadFriendsData();
+  } catch (error) {
+    setStatusMessage(error.message);
+  }
+}
+
 function selectFriend(friend) {
-  if (selectedFriends.includes(friend)) return;
+  if (isSelected(friend.email)) return;
 
   if (selectedFriends.length >= 3) {
     alert("You can only select up to 3 friends.");
@@ -108,7 +325,12 @@ function selectFriend(friend) {
   }
 
   selectedFriends.push(friend);
+  renderFriends();
   renderSelectedFriends();
+}
+
+function isSelected(email) {
+  return selectedFriends.some(friend => friend.email === email);
 }
 
 function renderSelectedFriends() {
@@ -124,17 +346,21 @@ function renderSelectedFriends() {
     const row = document.createElement("div");
     row.className = "friend-row selected";
 
-    row.innerHTML = `
-      <span>@${friend}</span>
-      <button class="friends-remove-btn">Remove</button>
-    `;
+    const label = document.createElement("span");
+    label.textContent = `${getDisplayName(friend)} (${friend.email})`;
 
-    row.querySelector("button").addEventListener("click", () => {
-      selectedFriends = selectedFriends.filter(item => item !== friend);
+    const removeButton = document.createElement("button");
+    removeButton.className = "friends-remove-btn";
+    removeButton.textContent = "Remove";
+    removeButton.addEventListener("click", () => {
+      selectedFriends = selectedFriends.filter(item => item.email !== friend.email);
+      renderFriends();
       renderSelectedFriends();
-      updateAvailabilityCalendar(false);
+      clearAvailabilityCalendar();
     });
 
+    row.appendChild(label);
+    row.appendChild(removeButton);
     list.appendChild(row);
   });
 }
@@ -154,103 +380,78 @@ function setupAvailabilityCalendar() {
       center: "title",
       right: "timeGridWeek"
     },
+    eventDidMount: info => {
+      if (info.event.display === "background") return;
+
+      const props = info.event.extendedProps || {};
+      const ownerLabel = props.is_current_user_event
+        ? "You"
+        : `@${props.owner_username}`;
+
+      info.el.title = `${info.event.title} (${ownerLabel})`;
+    },
     events: []
   });
 
   availabilityCalendar.render();
 }
 
-function updateAvailabilityCalendar(showAlert = true) {
-  if (selectedFriends.length === 0) {
+function clearAvailabilityCalendar() {
+  if (availabilityCalendar) {
     availabilityCalendar.removeAllEvents();
+  }
+}
 
-    if (showAlert) {
-      alert("Select at least one friend first.");
-    }
-
+async function handleCompareAvailabilityClick() {
+  if (selectedFriends.length === 0) {
+    alert("Select at least one friend first.");
     return;
   }
 
-  const usersToCompare = ["you", ...selectedFriends];
-  const busyEvents = [];
-
-  usersToCompare.forEach(user => {
-    const events = mockEvents[user] || [];
-
-    events.forEach(event => {
-      busyEvents.push({
-        title: event.title,
-        start: event.start,
-        end: event.end,
-        backgroundColor: "#dc3545",
-        borderColor: "#dc3545",
-        textColor: "#ffffff"
-      });
-    });
-  });
-
-  const freeEvents = generateFreeTimeBlocks(busyEvents);
-
-  availabilityCalendar.removeAllEvents();
-
-  [...freeEvents, ...busyEvents].forEach(event => {
-    availabilityCalendar.addEvent(event);
-  });
+  await loadAvailabilityComparison();
 }
 
-function generateFreeTimeBlocks(busyEvents) {
-  const freeBlocks = [];
+async function loadAvailabilityComparison() {
+  if (!availabilityCalendar) return;
 
-  const weekDays = [
-    "2026-05-04",
-    "2026-05-05",
-    "2026-05-06",
-    "2026-05-07",
-    "2026-05-08"
-  ];
-
-  weekDays.forEach(day => {
-    const dayStart = new Date(`${day}T08:00:00`);
-    const dayEnd = new Date(`${day}T20:00:00`);
-
-    const dayBusy = busyEvents
-      .filter(event => event.start.startsWith(day))
-      .map(event => ({
-        start: new Date(event.start),
-        end: new Date(event.end)
-      }))
-      .sort((a, b) => a.start - b.start);
-
-    let currentFreeStart = dayStart;
-
-    dayBusy.forEach(busy => {
-      if (busy.start > currentFreeStart) {
-        freeBlocks.push({
-          title: "Everyone free",
-          start: currentFreeStart.toISOString(),
-          end: busy.start.toISOString(),
-          backgroundColor: "#198754",
-          borderColor: "#198754",
-          textColor: "#ffffff"
-        });
+  const selectedNames = selectedFriends.map(friend => getDisplayName(friend)).join(", ");
+  const activeRange = availabilityCalendar.view.activeStart && availabilityCalendar.view.activeEnd
+    ? {
+        start: availabilityCalendar.view.activeStart.toISOString(),
+        end: availabilityCalendar.view.activeEnd.toISOString()
       }
+    : null;
 
-      if (busy.end > currentFreeStart) {
-        currentFreeStart = busy.end;
-      }
+  if (!activeRange) {
+    setStatusMessage("Calendar range could not be loaded.");
+    return;
+  }
+
+  setStatusMessage(`Comparing availability with ${selectedNames}...`);
+
+  try {
+    const data = await apiRequest("/api/friends/availability", {
+      method: "POST",
+      body: JSON.stringify({
+        friend_emails: selectedFriends.map(friend => friend.email),
+        start: activeRange.start,
+        end: activeRange.end
+      })
     });
 
-    if (currentFreeStart < dayEnd) {
-      freeBlocks.push({
-        title: "Everyone free",
-        start: currentFreeStart.toISOString(),
-        end: dayEnd.toISOString(),
-        backgroundColor: "#198754",
-        borderColor: "#198754",
-        textColor: "#ffffff"
-      });
-    }
-  });
+    availabilityCalendar.removeAllEvents();
 
-  return freeBlocks;
+    const eventsToDisplay = [
+      ...(data.free_slots || []),
+      ...(data.busy_events || [])
+    ];
+
+    eventsToDisplay.forEach(event => availabilityCalendar.addEvent(event));
+
+    setStatusMessage(
+      `Showing availability with ${selectedNames}. Green means everyone is free. Red/orange means someone is busy.`
+    );
+  } catch (error) {
+    setStatusMessage(error.message);
+  }
 }

@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from app import app, db
 from app.models import Event, TaskStatus, User
 from app.forms import LoginForm, SignupForm
-from datetime import datetime
+from datetime import datetime, time, timedelta
 from icalendar import Calendar, Event as ICalEvent
 from app.models import Event, TaskStatus, User, Friendship, FriendshipStatus
 
@@ -412,11 +412,6 @@ def delete():
         db.session.rollback()
         print(e)
         return jsonify({'error': 'Internal Server Error'}), 500
-    
-@app.route('/friends', methods=['GET'])
-@login_required
-def friends_page():
-    return render_template('friends-page.html', friends_active=True)
 
 
 @app.route('/api/friends/search', methods=['GET'])
@@ -617,3 +612,189 @@ def get_friends_list():
         'pending_sent': pending_sent,
         'pending_received': pending_received
     })
+
+def parse_iso_datetime(value):
+    """Parse ISO datetime sent from the browser."""
+    if not value:
+        return None
+
+    try:
+        return datetime.fromisoformat(value.replace('Z', '+00:00')).replace(tzinfo=None)
+    except ValueError:
+        return None
+
+
+def users_are_accepted_friends(user_email, friend_email):
+    """Check that two users are accepted friends."""
+    return Friendship.query.filter(
+        Friendship.status == FriendshipStatus.ACCEPTED,
+        or_(
+            db.and_(
+                Friendship.requester_email == user_email,
+                Friendship.receiver_email == friend_email
+            ),
+            db.and_(
+                Friendship.requester_email == friend_email,
+                Friendship.receiver_email == user_email
+            )
+        )
+    ).first() is not None
+
+
+def merge_busy_intervals(intervals):
+    """Merge overlapping busy time intervals."""
+    if not intervals:
+        return []
+
+    intervals.sort(key=lambda interval: interval[0])
+    merged = [intervals[0]]
+
+    for start, end in intervals[1:]:
+        last_start, last_end = merged[-1]
+
+        if start <= last_end:
+            merged[-1] = (last_start, max(last_end, end))
+        else:
+            merged.append((start, end))
+
+    return merged
+
+
+def generate_common_free_slots(start_range, end_range, busy_events):
+    """Generate common free slots between 8am and 8pm."""
+    free_slots = []
+    current_day = start_range.date()
+    final_day = end_range.date()
+
+    while current_day <= final_day:
+        day_start = datetime.combine(current_day, time(hour=8))
+        day_end = datetime.combine(current_day, time(hour=20))
+
+        clipped_intervals = []
+
+        for event in busy_events:
+            event_start = event['start_dt']
+            event_end = event['end_dt']
+
+            if event_end <= day_start or event_start >= day_end:
+                continue
+
+            clipped_intervals.append((
+                max(event_start, day_start),
+                min(event_end, day_end)
+            ))
+
+        merged_busy = merge_busy_intervals(clipped_intervals)
+        cursor = day_start
+
+        for busy_start, busy_end in merged_busy:
+            if busy_start > cursor and busy_start - cursor >= timedelta(minutes=30):
+                free_slots.append({
+                    'title': 'Everyone free',
+                    'start': cursor.isoformat(),
+                    'end': busy_start.isoformat(),
+                    'display': 'background',
+                    'backgroundColor': '#bbf7d0'
+                })
+
+            cursor = max(cursor, busy_end)
+
+        if day_end > cursor and day_end - cursor >= timedelta(minutes=30):
+            free_slots.append({
+                'title': 'Everyone free',
+                'start': cursor.isoformat(),
+                'end': day_end.isoformat(),
+                'display': 'background',
+                'backgroundColor': '#bbf7d0'
+            })
+
+        current_day += timedelta(days=1)
+
+    return free_slots
+
+
+@app.route('/api/friends/availability', methods=['POST'])
+@login_required
+def get_friend_availability():
+    data = request.get_json() or {}
+
+    selected_friend_emails = data.get('friend_emails', [])
+    range_start = parse_iso_datetime(data.get('start'))
+    range_end = parse_iso_datetime(data.get('end'))
+
+    if not isinstance(selected_friend_emails, list):
+        return jsonify({'error': 'friend_emails must be a list'}), 400
+
+    if not range_start or not range_end:
+        return jsonify({'error': 'Start and end date range are required'}), 400
+
+    if range_end <= range_start:
+        return jsonify({'error': 'End date range must be after start date range'}), 400
+
+    if len(selected_friend_emails) > 3:
+        return jsonify({'error': 'You can compare with a maximum of 3 friends'}), 400
+
+    allowed_friend_emails = []
+
+    for friend_email in selected_friend_emails:
+        if not users_are_accepted_friends(current_user.email, friend_email):
+            return jsonify({'error': f'{friend_email} is not an accepted friend'}), 403
+
+        allowed_friend_emails.append(friend_email)
+
+    calendar_owners = [current_user.email] + allowed_friend_emails
+
+    events = Event.query.filter(
+        Event.owner.in_(calendar_owners),
+        Event.end > range_start,
+        Event.start < range_end,
+        Event.end > Event.start
+    ).all()
+
+    users_by_email = {
+        user.email: user
+        for user in User.query.filter(User.email.in_(calendar_owners)).all()
+    }
+
+    busy_events = []
+
+    for event in events:
+        owner = users_by_email.get(event.owner)
+        owner_username = owner.username if owner else event.owner
+        is_current_user_event = event.owner == current_user.email
+
+        busy_events.append({
+            'title': event.title if is_current_user_event else f'Busy - @{owner_username}',
+            'start': event.start.isoformat(),
+            'end': event.end.isoformat(),
+            'backgroundColor': '#f97316' if is_current_user_event else '#ef4444',
+            'borderColor': '#ea580c' if is_current_user_event else '#dc2626',
+            'extendedProps': {
+                'owner': event.owner,
+                'owner_username': owner_username,
+                'is_current_user_event': is_current_user_event,
+                'location': event.location if is_current_user_event else None,
+                'description': event.description if is_current_user_event else None
+            },
+            'start_dt': event.start,
+            'end_dt': event.end
+        })
+
+    free_slots = generate_common_free_slots(range_start, range_end, busy_events)
+
+    public_busy_events = []
+
+    for event in busy_events:
+        public_busy_events.append({
+            'title': event['title'],
+            'start': event['start'],
+            'end': event['end'],
+            'backgroundColor': event['backgroundColor'],
+            'borderColor': event['borderColor'],
+            'extendedProps': event['extendedProps']
+        })
+
+    return jsonify({
+        'busy_events': public_busy_events,
+        'free_slots': free_slots
+    }), 200
