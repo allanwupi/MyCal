@@ -18,7 +18,7 @@ def normalise_username(username):
 
 @app.template_filter('format_datetime')
 def format_datetime(dt):
-    # "o-d", "%-I" is not supported on Windows, so we need to remove leading zeros manually
+    # "%-d", "%-I" is not supported on Windows, so we need to remove leading zeros manually
     day = dt.strftime("%d").lstrip("0")
     hour = dt.strftime("%I").lstrip("0")
     return f'{dt.strftime("%b")} {day}, {dt.strftime("%Y")} {hour}:{dt.strftime("%M")} {dt.strftime("%p")}'
