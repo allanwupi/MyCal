@@ -19,10 +19,10 @@ def normalise_username(username):
 @app.template_filter('format_datetime')
 def format_datetime(dt):
     # "o-d", "%-I" is not supported on Windows, so we need to remove leading zeros manually
-    d = dt.strftime("&d").lstrip("0")
-    I = dt.strftime("%I").lstrip("0")
-    return f'{dt.strftime("%b")} {d}, {dt.strftime("%Y")} {I}:{dt.strftime("M")} {dt.strftime("%p")}'
-    # equivalent to strftime("%b %-d, %Y %-I:®M %p") on Unix-based systems
+    day = dt.strftime("%d").lstrip("0")
+    hour = dt.strftime("%I").lstrip("0")
+    return f'{dt.strftime("%b")} {day}, {dt.strftime("%Y")} {hour}:{dt.strftime("%M")} {dt.strftime("%p")}'
+    # equivalent to strftime("%b %-d, %Y %-I:%M %p") on Unix-based systems
 
 
 @app.route('/', methods=['GET'])
