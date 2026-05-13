@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField
 from wtforms.validators import DataRequired, Email, Length, EqualTo
 
 
@@ -18,6 +18,8 @@ class LoginForm(FlaskForm):
     )
 
     remember = BooleanField('Remember Me')
+
+    submit = SubmitField('Login')
 
 
 class SignupForm(FlaskForm):
@@ -54,3 +56,5 @@ class SignupForm(FlaskForm):
         ],
         render_kw={'placeholder': 'Re-enter password'}
     )
+
+    submit = SubmitField('Sign up')
