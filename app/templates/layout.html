@@ -72,7 +72,7 @@
             <small>{{ current_user.email }}</small>
           </div>
           <form method="POST" action="{{ url_for('logout') }}">
-            <button class="logout-btn" type="submit">Logout</button>
+            <button id="logout-submit" class="logout-btn" type="submit">Logout</button>
           </form>
         </div>
       </div>
