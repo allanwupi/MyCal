@@ -5,7 +5,6 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-
 from app import app, db
 
 
@@ -73,6 +72,21 @@ class SeleniumBasicTest(unittest.TestCase):
         self.assertTrue(identifier_input.is_displayed())
         self.assertTrue(password_input.is_displayed())
         self.assertTrue(login_button.is_displayed())
+    
+    ### This test assumes that the signup process works correctly and that the user can log in after signing up. In a real-world scenario, you would want to separate these tests and ensure that the signup process is tested independently before testing the login and calendar access.
+        def test_user_can_sign_up_and_reach_calendar(self):
+            self.driver.get(self.base_url + "/")
+
+            signup_tab = self.driver.find_element(By.ID, "signup-tab")
+            signup_tab.click()
+
+            self.driver.find_element(By.ID, "username").send_keys("seleniumuser")
+            self.driver.find_element(By.ID, "email").send_keys("selenium@test.com")
+            self.driver.find_element(By.ID, "password").send_keys("password123")
+            self.driver.find_element(By.ID, "confirm_password").send_keys("password123")
+            self.driver.find_element(By.ID, "signup-submit").click()
+
+            self.assertIn("/calendar", self.driver.current_url)
 
 
 if __name__ == "__main__":
