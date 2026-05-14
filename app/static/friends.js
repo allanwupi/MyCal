@@ -449,7 +449,7 @@ async function loadAvailabilityComparison() {
     eventsToDisplay.forEach(event => availabilityCalendar.addEvent(event));
 
     setStatusMessage(
-      `Showing availability with ${selectedNames}. Green means everyone is free. Red/orange means someone is busy.`
+      `Showing availability with ${selectedNames}. Green means everyone is free. Red means someone is busy. Orange means you are unavailable`
     );
   } catch (error) {
     setStatusMessage(error.message);
