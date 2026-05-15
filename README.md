@@ -35,6 +35,11 @@ Set a secret key:
 export MYCAL_SECRET_KEY="your-secret-key-here"
 ```
 
+For Windows powershell run instead:
+```powershell
+$Env:MYCAL_SECRET_KEY="your-secret-key-here"
+```
+
 Run the app:
 
 ```bash
