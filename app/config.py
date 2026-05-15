@@ -12,11 +12,7 @@ class Config:
         raise ValueError("MYCAL_SECRET_KEY environment variable not set.\nUnix: export MYCAL_SECRET_KEY=<your_secret_key>\nWindows (PS): $Env:MYCAL_SECRET_KEY='<your_secret_key>'.")
 
 class TestConfig(Config):
-    SQLALCHEMY_DATABASE_URI = 'sqlite://'
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'connect_args': {'check_same_thread': False},
-        'poolclass': StaticPool,
-    }
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     TESTING = True
 
 class DeploymentConfig(Config):
