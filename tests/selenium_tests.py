@@ -8,14 +8,26 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import multiprocessing
-#import time
-import sys
+from werkzeug.serving import make_server
+import threading
+import time
 
 localHost = "http://127.0.0.1:5000/"
 
 # Choose a reasonable timeout for waiting for elements to appear on the page during Selenium tests
 TIMEOUT_SECONDS = 10
+
+
+class ServerThread(threading.Thread):
+    def __init__(self, app):
+        super().__init__(daemon=True)
+        self.server = make_server("127.0.0.1", 5000, app)
+
+    def run(self):
+        self.server.serve_forever()
+
+    def shutdown(self):
+        self.server.shutdown()
 
 class SeleniumTests(TestCase):
     def setUp(self):
@@ -25,19 +37,7 @@ class SeleniumTests(TestCase):
         db.create_all()
         create_test_data()
 
-        # On Mac a pickle error occurs when using multiprocessing.Process, so we use fork_context instead
-        if sys.platform == "darwin":
-            fork_context = multiprocessing.get_context("fork")
-            self.server_thread = fork_context.Process(
-                target=self.testApp.run,
-                kwargs={"use_reloader": False},
-            )
-        elif sys.platform.startswith("win"):
-            #import threading
-            #self.server_thread = threading.Thread(target=lambda: self.testApp.run(port=5000, use_reloader=False))
-            self.server_thread = multiprocessing.Process(target=self.testApp.run)
-        else:
-            self.server_thread = multiprocessing.Process(target=self.testApp.run)
+        self.server_thread = ServerThread(self.testApp)
         self.server_thread.start()
 
         options = webdriver.ChromeOptions()
@@ -47,8 +47,9 @@ class SeleniumTests(TestCase):
         return super().setUp()
     
     def tearDown(self):
-        self.server_thread.terminate()
-        self.driver.close()
+        self.driver.quit()
+        self.server_thread.shutdown()
+        self.server_thread.join(timeout=5)
 
         db.session.remove()
         db.drop_all()
