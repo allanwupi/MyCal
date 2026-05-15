@@ -10,6 +10,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from werkzeug.serving import make_server
 import threading
+import os
 import time
 
 localHost = "http://127.0.0.1:5000/"
@@ -88,3 +89,33 @@ class SeleniumTests(TestCase):
         )
         self.assertIsNotNone(alert_element, "Alert message not found after invalid login")
         self.assertEqual(alert_element.text, "Invalid login details. Please try again.", "Alert message text does not match expected invalid login message")
+
+    def test_import_ics_file(self):
+        self.driver.get(localHost)
+
+        self.driver.find_element(By.ID, "identifier").send_keys("testuser@example.com")
+        self.driver.find_element(By.ID, "password").send_keys("testpassword")
+        self.driver.find_element(By.ID, "submit").click()
+
+        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.ID, "calendar"))
+        )
+
+        self.driver.get(localHost + "import")
+
+        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.ID, "fileInput"))
+        )
+
+        file_path = os.path.abspath("tests/fixtures/testValid.ics")
+        file_input.send_keys(file_path)
+
+        self.driver.find_element(By.ID, "uploadBtn").click()
+
+        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.alert_is_present()
+        )
+
+        self.assertEqual(alert.text, "Successfully imported calendar!")
+
+        alert.accept()
