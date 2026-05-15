@@ -1,6 +1,7 @@
 document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const fileInput = document.getElementById("fileInput");
+    // Create FormData object to send uploaded file to backend
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
@@ -9,10 +10,13 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
         alert("Please select a file to upload.");
         return;
     }
+
+    // Only allow .ics calendar files to be uploaded
     if (!fileInput.files[0].name.endsWith('.ics')) {
         alert("Please upload a valid .ics file.");
         return;
     }
+    // Send uploaded calendar file to backend import route
     const res = await fetch("/upload", {
         method: "POST",
         body: formData
@@ -23,6 +27,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
                 throw new Error(data.error || 'Failed to save event');
             });
         }
+        // Confirmation message
         alert('Successfully imported calendar!')
     })
     .catch(error => {
@@ -32,6 +37,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     // console.log(data.events);
 });
 
+// Handles uploading and importing .ics calendar files
 document.getElementById("exportBtn").addEventListener("click", async () => {
   fetch("/export/ics", {
     method: "GET"
@@ -62,6 +68,7 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
 
     window.URL.revokeObjectURL(url);
   })
+  // Error message
   .catch(error => {
     alert("Error exporting calendar: " + error.message);
   });
