@@ -5,6 +5,8 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from app import app, db
 
 
@@ -32,10 +34,11 @@ class SeleniumBasicTest(unittest.TestCase):
         chrome_options.add_argument("--headless")
 
         cls.driver = webdriver.Chrome(
-        executable_path=r"D:\UWA\trimister 3\CITS 3403\git\chromedriver-win64\chromedriver.exe",
+        executable_path=r"drivers\chromedriver.exe",
         options=chrome_options
         )
         cls.base_url = "http://127.0.0.1:5001"
+        cls.wait = WebDriverWait(cls.driver, 10)
 
     @classmethod
     def tearDownClass(cls):
@@ -53,7 +56,10 @@ class SeleniumBasicTest(unittest.TestCase):
         signup_tab = self.driver.find_element(By.ID, "signup-tab")
         signup_tab.click()
 
-        time.sleep(1)
+        ## change time.sleep(1) into following
+        self.wait.until(
+            EC.visibility_of_element_located((By.ID, "username"))
+        )
 
         self.driver.find_element(By.ID, "username").send_keys(username)
 
@@ -74,11 +80,19 @@ class SeleniumBasicTest(unittest.TestCase):
             signup_button
         )
 
-        time.sleep(1)
+        ## change time.sleep(1) into · following
+        self.wait.until(
+            EC.element_to_be_clickable((By.ID, "signup-submit"))
+        )
 
         signup_button.click()
 
-        time.sleep(1)
+        ##time.sleep(1)
+        self.wait.until(
+            EC.presence_of_element_located(
+                (By.XPATH, "//*[contains(text(), 'Finish Selenium Test')]")
+            )
+        )
 
     def test_landing_page_loads(self):
         self.driver.get(self.base_url + "/")
