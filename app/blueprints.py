@@ -1,4 +1,4 @@
-from flask import Blueprint, app
+from flask import Blueprint
 
 main = Blueprint('main', __name__)
 
