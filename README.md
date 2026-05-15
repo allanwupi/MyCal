@@ -51,7 +51,7 @@ http://127.0.0.1:5000/
 Run unit tests:
 
 ```bash
-python -m unittest tests.unittests -v
+python -m unittest tests.unit_tests -v
 ```
 
 Run Selenium tests:

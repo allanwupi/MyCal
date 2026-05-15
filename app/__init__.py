@@ -29,6 +29,6 @@ from app.models import User
 
 @login_manager.user_loader
 def load_user(email):
-    return User.query.get(email)
+    return db.session.get(User, email)
 
 from app import models

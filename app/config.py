@@ -8,7 +8,7 @@ class Config:
     SECRET_KEY = os.environ.get('MYCAL_SECRET_KEY')
 
 class TestConfig(Config):
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     TESTING = True
 
 class DeploymentConfig(Config):

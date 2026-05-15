@@ -1,5 +1,5 @@
 from app import db
-from datetime import datetime
+from datetime import datetime, UTC
 import enum
 from flask_login import UserMixin
 from sqlalchemy import Enum
@@ -53,26 +53,10 @@ class User(UserMixin, db.Model):
 
 class Friendship(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-
-    requester_email = db.Column(
-        db.String(120),
-        db.ForeignKey('user.email'),
-        nullable=False
-    )
-
-    receiver_email = db.Column(
-        db.String(120),
-        db.ForeignKey('user.email'),
-        nullable=False
-    )
-
-    status = db.Column(
-        Enum(FriendshipStatus),
-        nullable=False,
-        default=FriendshipStatus.PENDING
-    )
-
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    requester_email = db.Column(db.String(120), db.ForeignKey('user.email'), nullable=False)
+    receiver_email = db.Column(db.String(120), db.ForeignKey('user.email'), nullable=False)
+    status = db.Column(Enum(FriendshipStatus), nullable=False, default=FriendshipStatus.PENDING)
+    created_at = db.Column(db.DateTime, default=datetime.now(UTC))
 
     def to_dict(self):
         return {
@@ -114,7 +98,17 @@ class Event(db.Model):
         }
 
 
-def create_test_data(owner_email):
+def create_test_data():
+    testUser = User(email="testuser@example.com", username="testuser")
+    testUser.set_password("testpassword")
+    testUser2 = User(email="testuser2@example.com", username="testuser2")
+    testUser2.set_password("testpassword")
+    friendship = Friendship(
+        requester_email=testUser.email,
+        receiver_email=testUser2.email,
+        status=FriendshipStatus.ACCEPTED
+    )
+
     task1 = Event(
         title='Assignment Due',
         start=datetime(2026, 4, 25, 14, 0, 0),
@@ -124,7 +118,7 @@ def create_test_data(owner_email):
         description='Complete and submit the final assignment.',
         isTask=True,
         taskStatus=TaskStatus.COMPLETED,
-        owner=owner_email
+        owner=testUser.email
     )
 
     task2 = Event(
@@ -136,7 +130,7 @@ def create_test_data(owner_email):
         description='Review lecture notes and practice problems.',
         isTask=True,
         taskStatus=TaskStatus.IN_PROGRESS,
-        owner=owner_email
+        owner=testUser.email
     )
 
     event1 = Event(
@@ -146,7 +140,7 @@ def create_test_data(owner_email):
         backgroundColor='#6366f1',
         location='Campus Gym',
         description='Strength workout and cardio session.',
-        owner=owner_email
+        owner=testUser.email
     )
 
     event2 = Event(
@@ -157,8 +151,9 @@ def create_test_data(owner_email):
         location='Engineering Building',
         description='Project discussion with team members.',
         isTask=False,
-        owner=owner_email
+        owner=testUser.email
     )
 
+    db.session.add_all([testUser, testUser2, friendship])
     db.session.add_all([task1, task2, event1, event2])
     db.session.commit()
