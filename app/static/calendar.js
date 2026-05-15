@@ -5,7 +5,8 @@ async function updateEventInfo(isTask, payload, calendar) {
   fetch(route, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      "X-CSRFToken": csrfToken
     },
     body: JSON.stringify(payload)
   })
@@ -188,7 +189,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const response = await fetch('/delete-event', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          "X-CSRFToken": csrfToken
         },
         body: JSON.stringify({
           id: selectedEvent.id
