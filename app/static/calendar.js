@@ -5,7 +5,8 @@ async function updateEventInfo(isTask, payload, calendar) {
   fetch(route, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      "X-CSRFToken": csrfToken
     },
     body: JSON.stringify(payload)
   })
@@ -72,6 +73,11 @@ function eventToJson(event, isTask) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+  // Read the CSRF token embedded in the HTML page.
+   const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    .getAttribute('content');
+
   const CALENDAR_HEIGHT_RATIO = 0.9;
 
   const calendarEl = document.getElementById('calendar');
@@ -188,7 +194,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const response = await fetch('/delete-event', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          "X-CSRFToken": csrfToken,
         },
         body: JSON.stringify({
           id: selectedEvent.id
