@@ -1,4 +1,4 @@
-# BetterCAS
+# MyCal
 
 ## Description
 A web app developed for the CITS3403 Agile Web Development group project. This is a calendar and task reminder tool for university assignments and studying, featuring:
@@ -27,12 +27,18 @@ Create the database tables:
 
 ```bash
 flask --app mycal init-db
+flask db upgrade
+```
+
+Set a secret key:
+```bash
+export MYCAL_SECRET_KEY="your-secret-key-here"
 ```
 
 Run the app:
 
 ```bash
-flask --app mycal run --debug
+flask --app mycal run
 ```
 
 Then open the local Flask URL:
@@ -41,11 +47,15 @@ Then open the local Flask URL:
 http://127.0.0.1:5000/
 ```
 
-Note: For local development, `SECRET_KEY` has a fallback value in `app/config.py`. For deployment, set a real secret key with:
+### Tests
+Run unit tests:
 
 ```bash
-export MYCAL_SECRET_KEY="your-secret-key-here"
+python -m unittest tests.unittests -v
 ```
 
-### Tests
-Not done yet
+Run Selenium tests:
+
+```bash
+python -m unittest tests.selenium_tests -v
+```
