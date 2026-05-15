@@ -1,4 +1,4 @@
-from datetime import date, datetime, UTC
+from datetime import date, datetime, UTC, timedelta
 from unittest import TestCase
 from flask import url_for
 from sqlalchemy import TIME
@@ -75,7 +75,7 @@ class WebpageActions:
         if start is None:
             start = datetime.now(UTC)
         if end is None:
-            end = start.replace(hour=start.hour + 1)
+            end = start + timedelta(hours=1)
         title_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.element_to_be_clickable((By.ID, "eventTitle"))
         )
@@ -229,7 +229,7 @@ class SeleniumTests(TestCase):
 
         title_input.send_keys("Selenium Test Event")
         start = datetime.now(UTC)
-        end = start.replace(hour=datetime.now(UTC).hour + 1)
+        end = start + timedelta(hours=1)
         self.driver.execute_script(f"arguments[0].value = '{start.strftime('%Y-%m-%dT%H:%M:%S')}';", start_time_input)
         self.driver.execute_script(f"arguments[0].value = '{end.strftime('%Y-%m-%dT%H:%M:%S')}';", end_time_input)
         event_location_input.send_keys("Test Location")
