@@ -747,9 +747,8 @@ def get_friend_availability():
 
     events = Event.query.filter(
         Event.owner.in_(calendar_owners),
-        Event.end > range_start,
-        Event.start < range_end,
-        Event.end > Event.start
+        Event.end >= range_start,
+        Event.start <= range_end
     ).all()
 
     users_by_email = {
@@ -764,10 +763,19 @@ def get_friend_availability():
         owner_username = owner.username if owner else event.owner
         is_current_user_event = event.owner == current_user.email
 
+        event_start = event.start
+        event_end = event.end
+
+        if event.isTask:
+            event_end = event_start + timedelta(hours=1)
+
+        if event_end <= range_start or event_start >= range_end:
+            continue
+
         busy_events.append({
             'title': event.title if is_current_user_event else f'Busy - @{owner_username}',
-            'start': event.start.isoformat(),
-            'end': event.end.isoformat(),
+            'start': event_start.isoformat(),
+            'end': event_end.isoformat(),
             'backgroundColor': '#f97316' if is_current_user_event else '#ef4444',
             'borderColor': '#ea580c' if is_current_user_event else '#dc2626',
             'extendedProps': {
@@ -775,10 +783,11 @@ def get_friend_availability():
                 'owner_username': owner_username,
                 'is_current_user_event': is_current_user_event,
                 'location': event.location if is_current_user_event else None,
-                'description': event.description if is_current_user_event else None
+                'description': event.description if is_current_user_event else None,
+                'isTask': event.isTask
             },
-            'start_dt': event.start,
-            'end_dt': event.end
+            'start_dt': event_start,
+            'end_dt': event_end
         })
 
     free_slots = generate_common_free_slots(range_start, range_end, busy_events)
