@@ -26,13 +26,17 @@ pip install -r requirements.txt
 Create the database tables:
 
 ```bash
-flask --app mycal init-db
-flask db upgrade
+flask --app mycal db init
+flask --app db upgrade
 ```
 
 Set a secret key:
 ```bash
-export MYCAL_SECRET_KEY="your-secret-key-here"
+export MYCAL_SECRET_KEY="your-secret-key-here" #MAC
+OR
+$env:MYCAL_SECRET_KEY="your-secret-key-here" #powershell
+OR
+set MYCAL_SECRET_KEY="your-secret-key-here" #command prompt
 ```
 
 Run the app:
