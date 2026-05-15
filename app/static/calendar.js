@@ -1,5 +1,6 @@
 // Wrapper for server request to update event time and/or duration, given a JSON payload
 async function updateEventInfo(isTask, payload, calendar) {
+  // Backend route depending on whether it is a task or event
   const route = isTask ? '/save/task' : '/save/event';
 
   fetch(route, {
@@ -11,6 +12,7 @@ async function updateEventInfo(isTask, payload, calendar) {
     body: JSON.stringify(payload)
   })
     .then(response => {
+      // Error message for server errors
       if (!response.ok) {
         return response.json().then(data => {
           throw new Error(data.error || 'Failed to save event');
@@ -42,6 +44,7 @@ function eventToJson(event, isTask) {
     return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
   }
 
+  // Create payload object containing all important event information
   const payload = {
     id: event.id,
     title: event.title,
@@ -109,6 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   let selectedEvent = null;
 
+  // Helper function to display dates in a user-friendly format
   function formatDateTime(date) {
     if (!date) return 'N/A';
 
@@ -118,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Opens the details modal and fills it with event/task information
   function showEventDetails(event) {
     selectedEvent = event;
 
@@ -130,6 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     detailsTitle.textContent = event.title || 'Untitled';
 
+    // Display different information depending on whether it is a task or event
     if (isTask) {
       detailsStartLabel.textContent = 'Due:';
       detailsStart.textContent = start;
@@ -165,6 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
     eventDetailsModal.show();
   }
 
+  // Deletes the currently selected event/task
   async function deleteSelectedEvent(calendar) {
     if (!selectedEvent) {
       alert('No event selected.');
@@ -174,6 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const isTask = selectedEvent.extendedProps.isTask;
     const itemType = isTask ? 'task' : 'event';
 
+    // Confirmation Warning before deletion
     const confirmed = confirm(
       `Warning: this ${itemType} is going to be deleted. Are you sure you want to continue?`
     );
@@ -198,7 +206,8 @@ document.addEventListener('DOMContentLoaded', function () {
       });
 
       const data = await response.json();
-
+      
+      //Handle backend errors
       if (!response.ok) {
         throw new Error(data.error || 'Failed to delete event');
       }
@@ -245,6 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
       showEventDetails(info.event);
     },
 
+    // Triggered when mouse hovers over an event
     eventMouseEnter: function (info) {
       const event = info.event;
       const start = event.start
@@ -266,12 +276,14 @@ document.addEventListener('DOMContentLoaded', function () {
         event.extendedProps.description || 'No description provided';
 
       if (event.extendedProps.isTask) {
+        //Tooltip layout for tasks
         tooltip.innerHTML = `
           <strong>${event.title}</strong>
           <div><span class="tooltip-label">Due:</span> ${end}</div> 
           <div><span class="tooltip-label">Status:</span> ${event.extendedProps.taskStatus}</div>
         `;
       } else {
+        //Tooltip layout for events
         tooltip.innerHTML = `
           <strong>${event.title}</strong>
           <div><span class="tooltip-label">Start:</span> ${start}</div>
@@ -319,6 +331,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   saveEventBtn.addEventListener('click', () => {
+    // Get values from form
     const title = eventTitleInput.value.trim();
     const start = eventStartInput.value;
     const end = eventEndInput.value;
@@ -348,6 +361,8 @@ document.addEventListener('DOMContentLoaded', function () {
       description: description,
       backgroundColor: '#6366f1',
       isTask: isTask,
+      
+      // Default task status
       taskStatus: isTask ? 'Not Started' : undefined
     };
 

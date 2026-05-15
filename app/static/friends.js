@@ -1,3 +1,4 @@
+// Stores the friends, availability comparison items and requests loaded from the backend
 let friends = [];
 let pendingSent = [];
 let pendingReceived = [];
@@ -71,6 +72,7 @@ function setupFriendSearch() {
   input.addEventListener("input", () => {
     clearTimeout(searchDebounceTimer);
 
+    //Helps with avoiding too many API calls
     searchDebounceTimer = setTimeout(() => {
       searchUsers(input.value.trim());
     }, 300);
@@ -135,6 +137,7 @@ function renderSearchResults(users) {
   });
 }
 
+// Sends a friend request to the selected user
 async function sendFriendRequest(receiverEmail) {
   try {
     await apiRequest("/api/friends/send-request", {
@@ -151,6 +154,7 @@ async function sendFriendRequest(receiverEmail) {
   }
 }
 
+// Loads accepted friends, sent requests, and received requests from backend
 async function loadFriendsData() {
   try {
     const data = await apiRequest("/api/friends/list");
@@ -172,6 +176,7 @@ async function loadFriendsData() {
   }
 }
 
+// Gives the user options to select or remove their accepted friends
 function renderFriends() {
   const list = document.getElementById("friendsList");
   list.innerHTML = "";
@@ -278,6 +283,7 @@ function renderPendingReceived() {
   });
 }
 
+// Accepts an incoming friend request
 async function acceptRequest(friendshipId) {
   try {
     await apiRequest(`/api/friends/accept-request/${friendshipId}`, {
@@ -304,6 +310,7 @@ async function rejectRequest(friendshipId) {
   }
 }
 
+// Removes either an existing friend or pending friend request
 async function removeFriend(friendshipId) {
   const confirmed = confirm("Are you sure you want to remove this friend or request?");
 
@@ -321,9 +328,11 @@ async function removeFriend(friendshipId) {
   }
 }
 
+// Adds a friend to the availability comparison list
 function selectFriend(friend) {
   if (isSelected(friend.email)) return;
 
+  // Limits comparison to a maximum of 3 selected friends
   if (selectedFriends.length >= 3) {
     alert("You can only select up to 3 friends.");
     return;
@@ -416,6 +425,7 @@ async function handleCompareAvailabilityClick() {
   await loadAvailabilityComparison();
 }
 
+// Loads shared availability data for the selected friends and current week (compare button must be refreshed for showing other weeks)
 async function loadAvailabilityComparison() {
   if (!availabilityCalendar) return;
 
@@ -446,6 +456,7 @@ async function loadAvailabilityComparison() {
 
     availabilityCalendar.removeAllEvents();
 
+    // Displays both free slots and busy events on the availability calendar
     const eventsToDisplay = [
       ...(data.free_slots || []),
       ...(data.busy_events || [])
@@ -454,7 +465,7 @@ async function loadAvailabilityComparison() {
     eventsToDisplay.forEach(event => availabilityCalendar.addEvent(event));
 
     setStatusMessage(
-      `Showing availability with ${selectedNames}. Green means everyone is free. Red/orange means someone is busy.`
+      `Showing availability with ${selectedNames}. Green means everyone is free. Red means someone is busy. Orange means you are unavailable`
     );
   } catch (error) {
     setStatusMessage(error.message);
