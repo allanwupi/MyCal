@@ -119,3 +119,76 @@ class SeleniumTests(TestCase):
         self.assertEqual(alert.text, "Successfully imported calendar!")
 
         alert.accept()
+
+    def test_invalid_ics_file(self):
+        self.driver.get(localHost)
+
+        self.driver.find_element(By.ID, "identifier").send_keys("testuser@example.com")
+        self.driver.find_element(By.ID, "password").send_keys("testpassword")
+        self.driver.find_element(By.ID, "submit").click()
+
+        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.ID, "calendar"))
+        )
+
+        self.driver.get(localHost + "import")
+
+        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.ID, "fileInput"))
+        )
+
+        file_path = os.path.abspath("tests/fixtures/testInvalid(no_events).ics")
+        file_input.send_keys(file_path)
+
+        self.driver.find_element(By.ID, "uploadBtn").click()
+
+        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.alert_is_present()
+        )
+
+        self.assertIn(
+            "No events found in the .ics file",
+            alert.text
+        )
+
+        alert.accept()
+    
+    def test_import_invalid_ics_backend_rejected(self):
+        # login
+        self.driver.get(localHost)
+
+        self.driver.find_element(By.ID, "identifier").send_keys("testuser@example.com")
+        self.driver.find_element(By.ID, "password").send_keys("testpassword")
+        self.driver.find_element(By.ID, "submit").click()
+
+        # wait for calendar page
+        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.ID, "calendar"))
+        )
+
+        # go to import page
+        self.driver.get(localHost + "import")
+
+        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.ID, "fileInput"))
+        )
+
+        # path to INVALID ICS (dtstart not valid date)
+        file_path = os.path.abspath("tests/fixtures/testInvalid(Backend_fail).ics")
+        file_input.send_keys(file_path)
+
+        # submit upload
+        self.driver.find_element(By.ID, "uploadBtn").click()
+
+        # wait for alert
+        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.alert_is_present()
+        )
+
+        # ASSERT backend rejection message
+        self.assertIn(
+            "No valid events found in file",
+            alert.text
+        )
+
+        alert.accept()
