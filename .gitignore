@@ -211,3 +211,6 @@ __marimo__/
 
 # Do not upload databases to GitHub
 *.db
+
+# Ignore local ChromeDriver binary
+drivers/chromedriver.exe

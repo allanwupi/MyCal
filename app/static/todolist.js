@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
+  //// Read the CSRF token embedded in the HTML page.
+  // This token is sent with AJAX requests to protect against CSRF attacks.
+  const csrfToken = document
+  .querySelector('meta[name="csrf-token"]')
+  .getAttribute('content');
+
   const todoInput = document.getElementById('todoInput');
   const todoDate = document.getElementById('todoDate');
   const addTodoBtn = document.getElementById('addTodoBtn');
@@ -154,7 +160,8 @@ document.addEventListener('DOMContentLoaded', function () {
     fetch('/save/task', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
       },
       body: JSON.stringify({
         title: title,
@@ -208,7 +215,8 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('/delete-event', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
           },
           body: JSON.stringify({ id: taskId })
         })
@@ -241,7 +249,8 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('/update-task-status', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
           },
           body: JSON.stringify({ id: taskId, status: newStatus })
         })

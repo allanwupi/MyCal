@@ -7,6 +7,10 @@ let availabilityCalendar = null;
 let searchDebounceTimer = null;
 
 document.addEventListener("DOMContentLoaded", () => {
+// Read the CSRF token embedded in the HTML page.
+  const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    .getAttribute('content');
   setupFriendSearch();
   setupAvailabilityCalendar();
   loadFriendsData();
@@ -20,6 +24,7 @@ async function apiRequest(url, options = {}) {
   const response = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken,
       ...(options.headers || {})
     },
     ...options

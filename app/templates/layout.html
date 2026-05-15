@@ -3,6 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 	<title>{% block title %}{% endblock %}</title>
   <script>
     (function () {
@@ -71,8 +72,11 @@
             <span>{{ current_user.username }}</span>
             <small>{{ current_user.email }}</small>
           </div>
-          <form method="POST" action="{{ url_for('main.logout') }}">
-            <button class="logout-btn" type="submit">Logout</button>
+<form method="POST" action="{{ url_for('main.logout') }}">
+  <button id="logout-submit" class="logout-btn" type="submit">
+    Logout
+  </button>
+</form>
           </form>
         </div>
       </div>
