@@ -2,9 +2,10 @@
 
 ## Description
 A web app developed for the CITS3403 Agile Web Development group project. This is a calendar and task reminder tool for university assignments and studying, featuring:
+- Calendar
 - To-do list
-- Calendar views
-- Sharing calendars with friends
+- View availability of friends
+- Import and export calendars
 
 ## List of Group Members
 | UWA ID   | Name               | GitHub Username |
@@ -23,11 +24,10 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Create the database tables:
+Initalise/update database tables:
 
 ```bash
-flask --app mycal init-db
-flask db upgrade
+flask --app mycal db upgrade
 ```
 
 Set a secret key:
@@ -35,7 +35,7 @@ Set a secret key:
 export MYCAL_SECRET_KEY="your-secret-key-here"
 ```
 
-For Windows powershell run instead:
+In Windows Powershell, run instead:
 ```powershell
 $Env:MYCAL_SECRET_KEY="your-secret-key-here"
 ```
