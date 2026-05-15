@@ -8,7 +8,7 @@ from app.config import TestConfig, DeploymentConfig
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
-login_manager.login_view = 'landing'
+login_manager.login_view = 'main.landing'
 login_manager.login_message = 'Please log in to access your dashboard.'
 login_manager.login_message_category = 'warning'
 

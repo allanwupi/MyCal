@@ -56,7 +56,7 @@ class Friendship(db.Model):
     requester_email = db.Column(db.String(120), db.ForeignKey('user.email'), nullable=False)
     receiver_email = db.Column(db.String(120), db.ForeignKey('user.email'), nullable=False)
     status = db.Column(Enum(FriendshipStatus), nullable=False, default=FriendshipStatus.PENDING)
-    created_at = db.Column(db.DateTime, default=datetime.now(UTC))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC) )
 
     def to_dict(self):
         return {

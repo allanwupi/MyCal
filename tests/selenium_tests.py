@@ -42,6 +42,7 @@ class SeleniumTests(TestCase):
 
         options = webdriver.ChromeOptions()
         options.add_argument("--headless=new")
+        options.add_argument("--window-size=1920,1080")
         self.driver = webdriver.Chrome(options=options)
         return super().setUp()
     
@@ -60,9 +61,9 @@ class SeleniumTests(TestCase):
         identifier_input = self.driver.find_element(By.ID, "identifier")
         password_input = self.driver.find_element(By.ID, "password")
         submit_button = self.driver.find_element(By.ID, "submit")
-
         identifier_input.send_keys("testuser@example.com")
         password_input.send_keys("testpassword")
+        self.driver.execute_script("arguments[0].scrollIntoView(true);", submit_button)
         submit_button.click()
         # successful login should redirect to calendar page, so we wait for an element on the calendar page to be present
         WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
@@ -75,9 +76,10 @@ class SeleniumTests(TestCase):
         identifier_input = self.driver.find_element(By.ID, "identifier")
         password_input = self.driver.find_element(By.ID, "password")
         submit_button = self.driver.find_element(By.ID, "submit")
-
         identifier_input.send_keys("invalid@example.com")
         password_input.send_keys("invalidpassword")
+
+        self.driver.execute_script("arguments[0].scrollIntoView(true);", submit_button)
         submit_button.click()
         # invalid login should flash an error message
         alert_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(

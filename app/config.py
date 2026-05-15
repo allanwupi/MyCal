@@ -6,6 +6,8 @@ default_db_path = 'sqlite:///' + os.path.join(basedir, 'mycal.db')
 class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.environ.get('MYCAL_SECRET_KEY')
+    if SECRET_KEY is None:
+        raise ValueError("MYCAL_SECRET_KEY environment variable not set.\nRun 'export MYCAL_SECRET_KEY=<your_secret_key>' starting the application.")
 
 class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
