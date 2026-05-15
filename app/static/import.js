@@ -44,10 +44,9 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     .catch(error => {
         alert('Error importing calendar: ' + error.message);
     });
-    // const data = await res.json();
-    // console.log(data.events);
 });
 
+// Handles uploading and importing .ics calendar files
 document.getElementById("exportBtn").addEventListener("click", async () => {
   fetch("/export/ics", {
     method: "GET"
@@ -78,6 +77,7 @@ document.getElementById("exportBtn").addEventListener("click", async () => {
 
     window.URL.revokeObjectURL(url);
   })
+  // Error message
   .catch(error => {
     alert("Error exporting calendar: " + error.message);
   });
