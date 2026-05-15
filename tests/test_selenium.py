@@ -46,20 +46,39 @@ class SeleniumBasicTest(unittest.TestCase):
     
     ##add the sign up infomation to avoid the problem of the user already exists when running the test multiple times
     def sign_up_user(self, username, email, password):
+        #delect the use cookies to avoid the problem of the user already exists when running the test multiple times
+        self.driver.delete_all_cookies()
         self.driver.get(self.base_url + "/")
 
         signup_tab = self.driver.find_element(By.ID, "signup-tab")
         signup_tab.click()
 
-        time.sleep(0.5)
+        time.sleep(1)
 
         self.driver.find_element(By.ID, "username").send_keys(username)
-        self.driver.find_element(By.ID, "email").send_keys(email)
-        self.driver.find_element(By.ID, "password").send_keys(password)
-        self.driver.find_element(By.ID, "confirm_password").send_keys(password)
-        self.driver.find_element(By.ID, "signup-submit").click()
 
-        time.sleep(0.5)
+        self.driver.find_element(By.ID, "email").send_keys(email)
+
+        password_inputs = self.driver.find_elements(By.ID, "password")
+        password_inputs[1].send_keys(password)
+
+        self.driver.find_element(
+            By.ID,
+            "confirm_password"
+        ).send_keys(password)
+
+        signup_button = self.driver.find_element(By.ID, "signup-submit")
+
+        self.driver.execute_script(
+            "arguments[0].scrollIntoView({block: 'center'});",
+            signup_button
+        )
+
+        time.sleep(1)
+
+        signup_button.click()
+
+        time.sleep(1)
 
     def test_landing_page_loads(self):
         self.driver.get(self.base_url + "/")
@@ -111,9 +130,16 @@ class SeleniumBasicTest(unittest.TestCase):
         self.driver.get(self.base_url + "/todo")
 
         self.driver.find_element(By.ID, "todoInput").send_keys("Finish Selenium Test")
-        self.driver.find_element(By.ID, "todoDate").send_keys("2026-05-20T10:30")
+
+        self.driver.execute_script(
+            """
+            document.getElementById('todoDate').value =
+            '2026-05-20T10:30';
+            """
+        )
+        
         self.driver.find_element(By.ID, "addTodoBtn").click()
-        time.sleep(0.5)
+        time.sleep(1)
         self.assertIn("Finish Selenium Test", self.driver.page_source)
 
     #add a logout test to ensure that the user can log out successfully and is redirected to the login page.
@@ -126,7 +152,7 @@ class SeleniumBasicTest(unittest.TestCase):
 
         self.driver.find_element(By.ID, "logout-submit").click()
 
-        time.sleep(0.5)
+        time.sleep(1)
 
         self.assertIn("Login", self.driver.page_source)
 
