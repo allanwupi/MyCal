@@ -9,7 +9,8 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.environ.get('MYCAL_SECRET_KEY')
     if SECRET_KEY is None:
-        raise ValueError("MYCAL_SECRET_KEY environment variable not set.\nUnix: export MYCAL_SECRET_KEY=<your_secret_key>\nWindows (PS): $Env:MYCAL_SECRET_KEY='<your_secret_key>'.")
+        raise ValueError("""MYCAL_SECRET_KEY environment variable not set.
+        \nBash: `export MYCAL_SECRET_KEY='your_secret_key'`\nPowershell: `$Env:MYCAL_SECRET_KEY='your_secret_key'`""")
 
 class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
