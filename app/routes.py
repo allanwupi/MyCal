@@ -166,6 +166,90 @@ def imported_calendars():
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload():
+
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files['file']
+
+    if not file or file.filename == '':
+        return jsonify({"error": "No file provided"}), 400
+
+    if not file.filename.lower().endswith('.ics'):
+        return jsonify({"error": "Invalid file type"}), 400
+
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+
+    if size > 1_000_000:
+        return jsonify({"error": "File too large"}), 400
+    
+    try:
+        cal = Calendar.from_ical(file.read())
+    except Exception:
+        return jsonify({"error": "Invalid ICS format"}), 400
+
+    seen = set()
+    events = []
+    count = 0
+    for component in cal.walk():
+        if component.name != "VEVENT":
+            continue
+
+        try:
+            uid = str(component.get('uid', ''))
+            if not uid or uid in seen:
+                continue
+            seen.add(uid)
+
+            dtstart = component.get('dtstart')
+            if not dtstart:
+                continue
+
+            start = dtstart.dt
+
+            if not hasattr(start, 'isoformat'):
+                continue
+
+            dtend = component.get('dtend')
+            end = dtend.dt if dtend else None
+
+            if end and end < start:
+                end = start
+
+            title = str(component.get('summary', 'Untitled Event'))[:255]
+            location = str(component.get('location', ''))[:255]
+            description = str(component.get('description', ''))[:1000]
+
+            event = Event(
+                title=title,
+                start=start,
+                end=end,
+                backgroundColor=component.get('color', '#6366f1'),
+                location=location,
+                description=description,
+                owner=current_user.email
+            )
+
+            db.session.add(event)
+            events.append(event)
+            count += 1
+
+        except Exception:
+            continue
+
+    if count == 0:
+        return jsonify({"error": "No valid events found in file"}), 400
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Import successful",
+        "count": count,
+        "events": [e.to_dict() for e in events]
+    }), 200
+    
     file = request.files['file']
     if not file or not file.filename.endswith('.ics'):
         return {"error": "Invalid file"}, 400
