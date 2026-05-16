@@ -1,30 +1,38 @@
 // Wrapper for server request to update event time and/or duration, given a JSON payload
-async function updateEventInfo(isTask, payload, calendar) {
+async function updateEventInfo(isTask, payload, calendar, buttonToDisable) {
   // Backend route depending on whether it is a task or event
   const route = isTask ? '/save/task' : '/save/event';
 
-  fetch(route, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(payload)
-  })
-    .then(response => {
-      // Error message for server errors
-      if (!response.ok) {
-        return response.json().then(data => {
-          throw new Error(data.error || 'Failed to save event');
-        });
-      }
+  let originalButtonText = "";
+  if (buttonToDisable) {
+    buttonToDisable.disabled = true;
+    originalButtonText = buttonToDisable.textContent;
+    buttonToDisable.textContent = 'Saving...';
+  }
 
-      // Refresh calendar to ensure server values are shown
-      calendar.refetchEvents();
-    })
-    .catch(error => {
-      alert('Error saving event: ' + error.message);
-      calendar.refetchEvents();
+  try {
+    const response = await fetch(route, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to save event');
+    }
+
+    // Refresh calendar to ensure server values are shown
+    calendar.refetchEvents();
+    return response;
+  } finally {
+    if (buttonToDisable) {
+      buttonToDisable.disabled = false;
+      buttonToDisable.textContent = originalButtonText;
+    }
+  }
 }
 
 // Helper function to convert FullCalendar Event object into plain JSON
@@ -244,7 +252,10 @@ document.addEventListener('DOMContentLoaded', function () {
       const isTask = event.extendedProps.isTask;
       const payload = eventToJson(event, isTask);
 
-      updateEventInfo(isTask, payload, calendar);
+      updateEventInfo(isTask, payload, calendar).catch(error => {
+        alert('Error saving event: ' + error.message);
+        calendar.refetchEvents();
+      });
     },
 
     eventClick: function (info) {
@@ -328,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  saveEventBtn.addEventListener('click', () => {
+  saveEventBtn.addEventListener('click', async () => {
     // Get values from form
     const title = eventTitleInput.value.trim();
     const start = eventStartInput.value;
@@ -348,9 +359,6 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
-    saveEventBtn.disabled = true;
-    saveEventBtn.textContent = 'Saving...';
-
     const payload = {
       title: title,
       start: start,
@@ -364,11 +372,12 @@ document.addEventListener('DOMContentLoaded', function () {
       taskStatus: isTask ? 'Not Started' : undefined
     };
 
-    updateEventInfo(isTask, payload, calendar);
-
-    saveEventBtn.disabled = false;
-    saveEventBtn.textContent = 'Save Event';
-    addEventModal.hide();
+    try {
+      await updateEventInfo(isTask, payload, calendar, saveEventBtn);
+      addEventModal.hide();
+    } catch (error) {
+      alert('Error saving event: ' + error.message);
+    }
   });
 
   deleteEventBtn.addEventListener('click', () => {

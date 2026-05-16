@@ -665,7 +665,7 @@ def get_friends_list():
                 else friendship.requester_email
             )
 
-            friend = User.query.get(friend_email)
+            friend = db.session.get(User, friend_email)
 
             accepted_friends.append({
                 'friendship_id': friendship.id,
@@ -684,7 +684,7 @@ def get_friends_list():
                 })
 
             elif friendship.receiver_email == current_user.email:
-                requester = User.query.get(friendship.requester_email)
+                requester = db.session.get(User, friendship.requester_email)
 
                 pending_received.append({
                     'friendship_id': friendship.id,
