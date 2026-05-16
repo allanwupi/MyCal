@@ -1,7 +1,5 @@
-from datetime import date, datetime, UTC, timedelta
+from datetime import datetime, UTC, timedelta
 from unittest import TestCase
-from flask import url_for
-from sqlalchemy import TIME
 from app import create_app, db
 from app.config import TestConfig
 from app.models import User, Friendship, FriendshipStatus, Event, create_test_data
@@ -48,6 +46,22 @@ class WebpageActions:
         WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.ID, "calendar"))
         )
+        return self
+
+    def signup(self, email, username, password, confirm_password):
+        self.driver.get(localHost)
+        self.driver.find_element(By.ID, "signup-tab").click()
+        email_input = self.driver.find_element(By.ID, "email")
+        username_input = self.driver.find_element(By.ID, "username")
+        password_input = self.driver.find_element(By.ID, "signup_password")
+        confirm_password_input = self.driver.find_element(By.ID, "confirm_password")
+        submit_button = self.driver.find_element(By.ID, "submit_signup")
+
+        email_input.send_keys(email)
+        username_input.send_keys(username)
+        password_input.send_keys(password)
+        confirm_password_input.send_keys(confirm_password)
+        submit_button.click()
         return self
     
     def logout(self):
@@ -170,7 +184,65 @@ class SeleniumTests(TestCase):
         )
         self.assertIsNotNone(alert_element, "Alert message not found after invalid login")
         self.assertEqual(alert_element.text, "Invalid login details. Please try again.", "Alert message text does not match expected invalid login message")
+
+    def test_valid_signup(self):
+        webpage = WebpageActions(self.driver).signup(
+            email="testuser3@example.com",
+            username="testuser3",
+            password="testpassword",
+            confirm_password="testpassword"
+        )
+        # successful signup should redirect to login page, so we wait for an element on the login page to be present
+        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.ID, "calendar"))
+        )
+        self.assertIsNotNone(self.driver.find_element(By.ID, "calendar"), "Calendar not found after successful signup, expected to be on calendar page")
     
+    def test_invalid_signup(self):
+        # Test duplicate usernames
+        webpage = WebpageActions(self.driver).signup(
+            email="testuser3@example.com",
+            username="testuser",
+            password="testpassword",
+            confirm_password="testpassword"
+        )
+        alert_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "alert"))
+        )
+        self.assertIsNotNone(alert_element, "Alert message not found after invalid signup")
+        self.assertEqual(alert_element.text, "That username is already taken.", "Alert message text does not match duplicate username message, got: {alert_element.text}")
+
+        # Test duplicate emails
+        webpage = WebpageActions(self.driver).signup(
+            email="testuser@example.com",
+            username="testuser3",
+            password="testpassword",
+            confirm_password="testpassword"
+        )
+        alert_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "alert"))
+        )
+        # invalid signup should flash an error message
+        alert_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "alert"))
+        )
+        self.assertIsNotNone(alert_element, "Alert message not found after invalid signup")
+        self.assertEqual(alert_element.text, "An account with that email already exists.", "Alert message text does not match duplicate email message, got: {alert_element.text}")
+    
+        # Test mismatched passwords
+        webpage = WebpageActions(self.driver).signup(
+            email="testuser3@example.com",
+            username="testuser3",
+            password="testpassword",
+            confirm_password="testpassword2"
+        )
+        alert_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "alert"))
+        )
+        self.assertIsNotNone(alert_element, "Alert message not found after invalid signup")
+        self.assertEqual(alert_element.text, "Passwords do not match.", "Alert message text does not match mismatched passwords message, got: {alert_element.text}")
+
+
     def test_navigation_links(self):
         # Tests that the sidebar navigation links work correctly and that the expected elements are present on each page after navigation
         webpage = WebpageActions(self.driver).login()

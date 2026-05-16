@@ -66,12 +66,12 @@
             {{ signup_form.email(id="email", class="form-control") }}
 
             {{ signup_form.password.label }}
-            {{ signup_form.password(id="password", class="form-control") }}
+            {{ signup_form.password(id="signup_password", class="form-control") }}
 
             {{ signup_form.confirm_password.label }}
             {{ signup_form.confirm_password(id="confirm_password", class="form-control") }}
 
-            {{ signup_form.submit(class="submit-btn submit-btn w-100 mt-3") }}
+            {{ signup_form.submit(id="submit_signup",class="submit-btn submit-btn w-100 mt-3") }}
           </form>
         </div>
       </div>
