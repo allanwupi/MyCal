@@ -109,6 +109,12 @@ def create_test_data():
     testUser2 = User(email="testuser2@example.com", username="testuser2")
     testUser2.set_password("thisisanotherpassword")
 
+    friendA = User(email="friendA@example.com", username="friendA")
+    friendA.set_password("passwordA")
+    friendB = User(email="friendB@example.com", username="friendB")
+    friendB.set_password("passwordB")
+    friendship = Friendship(requester_email=friendA.email, receiver_email=friendB.email, status=FriendshipStatus.ACCEPTED)
+
     task1 = Event(
         title='Assignment Due',
         start=datetime(2026, 5, 15, 23, 0, 0),
@@ -155,5 +161,6 @@ def create_test_data():
     )
 
     db.session.add_all([testUser, testUser2])
+    db.session.add_all([friendA, friendB, friendship])
     db.session.add_all([task1, task2, event1, event2])
     db.session.commit() 
