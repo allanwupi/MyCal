@@ -400,7 +400,7 @@ class SeleniumTests(TestCase):
         imported_event = Event.query.filter_by(title="Test Event").first()
         self.assertIsNotNone(imported_event, "Imported event not found in database")
 
-    def test_import_invalid_ics_file(self):
+    def test_import_invalid_ics_frontend_rejection(self):
         webpage = WebpageActions(self.driver).login().navigate_to_import()
         file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.ID, "fileInput"))
@@ -504,7 +504,7 @@ class SeleniumTests(TestCase):
         )
         alert.accept()
         
-    def test_import_invalid_ics_backend_rejected(self):
+    def test_import_invalid_ics_backend_rejection(self):
         webpage = WebpageActions(self.driver).login().navigate_to_import()
         file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.ID, "fileInput"))
