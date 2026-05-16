@@ -4,7 +4,7 @@ from flask import url_for
 from sqlalchemy import TIME
 from app import create_app, db
 from app.config import TestConfig
-from app.models import User, Friendship, Event, create_test_data
+from app.models import User, Friendship, FriendshipStatus, Event, create_test_data
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
@@ -123,7 +123,7 @@ class SeleniumTests(TestCase):
         self.server_thread.start()
 
         options = webdriver.ChromeOptions()
-        #options.add_argument("--headless=new")
+        options.add_argument("--headless=new")
         options.add_argument("--window-size=1920,1080")
         self.driver = webdriver.Chrome(options=options)
         return super().setUp()
@@ -365,8 +365,7 @@ class SeleniumTests(TestCase):
         alert.accept()
 
     def test_update_todo_task(self):
-        webpage = WebpageActions(self.driver).login()
-        webpage.navigate_to_todo()
+        webpage = WebpageActions(self.driver).login().navigate_to_todo()
         WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.CLASS_NAME, "task-item"))
         )
@@ -388,14 +387,99 @@ class SeleniumTests(TestCase):
         self.assertIsNotNone(updated_task, "Task to update not found in database")
         self.assertEqual(updated_task.taskStatus.value, "In Progress", "Task status in database does not match expected value after update")
 
-    def test_create_friendship(self):
-        pass
+    def test_create_and_accept_friendship(self):
+        webpage = WebpageActions(self.driver).login().navigate_to_friends()
+        friend_search_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.ID, "friendSearchInput"))
+        )
+        friend_search_input.send_keys("testuser2")
+        add_friend_button = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.CLASS_NAME, "friends-small-btn"))
+        )
+        add_friend_button.click()
+        # Wait for a friend row div to appear containing the details of test user 2
+        outgoing_friend_request = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.XPATH, "//div[span[text()='@testuser2 (testuser2@example.com)']]"))
+        )
+        self.assertIsNotNone(outgoing_friend_request, "Outgoing friend request not found after sending friend request")
+        # Check that the database contains a new friendship with the correct requester, receiver and status
+        friendship = db.session.query(Friendship).filter_by(requester_email="testuser@example.com", receiver_email="testuser2@example.com").first()
+        self.assertIsNotNone(friendship, "Friendship not found in database after sending friend request")
+        self.assertEqual(friendship.status.value, "pending", f"Friendship status in database does not match 'pending' as expected after sending friend request, got {friendship.status.value}")
 
-    def test_accept_friendship(self):
-        pass
+        # Login as user 2 to accept the friend request
+        webpage.logout().login("testuser2", "thisisanotherpassword").navigate_to_friends()
+        # Wait for a friend request row div to appear containing the details of test user 1
+        incoming_friend_request = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.XPATH, "//div[span[text()='@testuser (testuser@example.com)']]"))
+        )
+        self.assertIsNotNone(incoming_friend_request, "Incoming friend request not found after sending friend request")
+
+        accept_friend_button = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.CLASS_NAME, "friends-small-btn"))
+        )
+        accept_friend_button.click()
+    
+        # Wait until a button appears for the new friend indicating the request has been accepted
+        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[text()='Select']"))
+        )
+        # Check that the database was updated with the new friendship status
+        db.session.expire_all()  # Expire session to ensure we get the updated value from the database
+        updated_friendship = db.session.query(Friendship).filter_by(requester_email="testuser@example.com", receiver_email="testuser2@example.com").first()
+        self.assertIsNotNone(updated_friendship, "Friendship not found in database after accepting friend request")
+        self.assertEqual(updated_friendship.status.value, "accepted", f"Friendship status in database does not match 'accepted' as expected after accepting friend request, got {updated_friendship.status.value}")
 
     def test_reject_friendship(self):
-        pass
+        # For this test we will directly create a pending friendship in the database and then reject it through the frontend to test that flow
+        pending_friendship = Friendship(requester_email="testuser@example.com", receiver_email="testuser2@example.com", status=FriendshipStatus.PENDING)
+        db.session.add(pending_friendship)
+        db.session.commit()
+        webpage = WebpageActions(self.driver).login("testuser2", "thisisanotherpassword").navigate_to_friends()
+        # Wait for a friend request row div to appear containing the details of test user 1
+        incoming_friend_request = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.XPATH, "//div[span[text()='@testuser (testuser@example.com)']]"))
+        )
+        self.assertIsNotNone(incoming_friend_request, "Incoming friend request not found after sending friend request")
+        # Find the reject button for the incoming friend request and click it
+        reject_friend_button = self.driver.find_element(By.CLASS_NAME, "friends-remove-btn")
+        reject_friend_button.click()
+        # Wait until the friend request is removed from the UI
+        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.staleness_of(incoming_friend_request)
+        )
+        # Check that the database was updated with the rejected friendship status
+        db.session.expire_all()  # Expire session to ensure we get the updated value from the database
+        updated_friendship = db.session.query(Friendship).filter_by(requester_email="testuser@example.com", receiver_email="testuser2@example.com").first()
+        self.assertIsNotNone(updated_friendship, "Friendship not found in database after rejecting friend request")
+        self.assertEqual(updated_friendship.status.value, "rejected", f"Friendship status in database does not match 'rejected' as expected after rejecting friend request, got {updated_friendship.status.value}") 
+    
+    def test_remove_friend(self):
+        # For this test we will directly create an accepted friendship in the database and then remove it through the frontend to test that flow
+        accepted_friendship = Friendship(requester_email="testuser@example.com", receiver_email="testuser2@example.com", status=FriendshipStatus.ACCEPTED)
+        db.session.add(accepted_friendship)
+        db.session.commit()
+        webpage = WebpageActions(self.driver).login().navigate_to_friends()
+        # Wait for a friend row div to appear containing the details
+        friend_row = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.XPATH, "//div[span[text()='@testuser2 (testuser2@example.com)']]"))
+        )
+        # Find the remove friend button and click it
+        remove_friend_button = friend_row.find_element(By.CLASS_NAME, "friends-remove-btn")
+        remove_friend_button.click()
+        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.alert_is_present()
+        )
+        self.assertEqual(alert.text, "Are you sure you want to remove this friend or request?", f"Alert text does not match expected confirmation message when removing friend, got: {alert.text}")
+        alert.accept()
+        # Wait until the friend is removed from the UI
+        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.staleness_of(friend_row)
+        )
+        # Check that the database was updated and the friendship has been deleted
+        db.session.expire_all()  # Expire session to ensure we get the updated value from the database
+        updated_friendship = db.session.query(Friendship).filter_by(requester_email="testuser@example.com", receiver_email="testuser2@example.com").first()
+        self.assertIsNone(updated_friendship, "Friendship found in database after removing friend")
 
     def test_import_valid_ics_file(self):
         webpage = WebpageActions(self.driver).login().navigate_to_import()
