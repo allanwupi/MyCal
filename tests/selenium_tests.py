@@ -281,7 +281,10 @@ class SeleniumTests(TestCase):
         title_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.element_to_be_clickable((By.ID, "eventTitle"))
         )
-        self.assertIsNotNone(title_input, "Event title input not found in event creation modal")
+        self.assertIsNotNone(
+            title_input,
+            "Event title input not found in event creation modal"
+        )
         start_time_input = self.driver.find_element(By.ID, "eventStart")
         end_time_input = self.driver.find_element(By.ID, "eventEnd")
         save_event_button = self.driver.find_element(By.ID, "saveEventBtn")
@@ -338,7 +341,11 @@ class SeleniumTests(TestCase):
         alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.alert_is_present()
         )
-        self.assertEqual(alert.text, "Please enter a task.", f"Alert text does not match expected error message for creating todo task without title, got: {alert.text}")
+        self.assertEqual(
+            alert.text,
+            "Please enter a task.",
+            f"Alert text does not match expected error message for creating todo task without title, got: {alert.text}"
+        )
         alert.accept()
         webpage.navigate_to_todo()
         todo_title_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
@@ -350,7 +357,11 @@ class SeleniumTests(TestCase):
         alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.alert_is_present()
         )
-        self.assertEqual(alert.text, "Please set a due date.", f"Alert text does not match expected error message for creating todo task without due date, got: {alert.text}")
+        self.assertEqual(
+            alert.text,
+            "Please set a due date.",
+            f"Alert text does not match expected error message for creating todo task without due date, got: {alert.text}"
+        )
         alert.accept()
 
     def test_update_todo_task(self):
@@ -366,10 +377,72 @@ class SeleniumTests(TestCase):
         pass
 
     def test_import_valid_ics_file(self):
-        self.driver.get(localHost)
-        self.driver.find_element(By.ID, "identifier").send_keys("testuser@example.com")
-        self.driver.find_element(By.ID, "password").send_keys("thisisatestpassword")
-        self.driver.find_element(By.ID, "submit").click()
+        webpage = WebpageActions(self.driver).login().navigate_to_import()
+        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.ID, "fileInput"))
+        )
+
+        file_path = os.path.abspath("tests/fixtures/testValid.ics")
+        file_input.send_keys(file_path)
+
+        self.driver.find_element(By.ID, "uploadBtn").click()
+
+        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.alert_is_present()
+        )
+        self.assertEqual(
+            alert.text,
+            "Successfully imported calendar!",
+            f"Alert text does not match expected success message after importing valid ICS file, got: {alert.text}"
+        )
+        alert.accept()
+        # Query the database to verify that the event from the ICS file was imported correctly
+        imported_event = Event.query.filter_by(title="Test Event").first()
+        self.assertIsNotNone(imported_event, "Imported event not found in database")
+
+    def test_import_invalid_ics_file(self):
+        webpage = WebpageActions(self.driver).login().navigate_to_import()
+        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.ID, "fileInput"))
+        )
+
+        file_path = os.path.abspath("tests/fixtures/testInvalid.ics")
+        file_input.send_keys(file_path)
+
+        self.driver.find_element(By.ID, "uploadBtn").click()
+
+        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.alert_is_present()
+        )
+        self.assertEqual(
+            alert.text, 
+            "Error importing calendar: Invalid .ics file format.",
+            f"Alert text does not match expected error message after importing invalid ICS file, got: {alert.text}"
+        )
+        alert.accept()
+
+    def test_export_valid_ics_file(self):
+        download_dir = os.path.abspath("tests/downloads")
+
+        if not os.path.exists(download_dir):
+            os.makedirs(download_dir)
+
+        # Shut down existing driver, need to set additional permissions for downloading
+        self.driver.quit()
+        new_options = webdriver.ChromeOptions()
+        new_options.add_argument("--headless=new")
+        new_options.add_argument("--window-size=1920,1080")
+        prefs = {
+            "download.default_directory": download_dir,
+            "download.prompt_for_download": False,
+            "download.directory_upgrade": True,
+            "safebrowsing.enabled": True
+        }
+        new_options.add_experimental_option("prefs", prefs)
+        self.driver = webdriver.Chrome(options=new_options)
+
+        webpage = WebpageActions(self.driver).login()
+        
         WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.ID, "calendar"))
         )
@@ -388,27 +461,48 @@ class SeleniumTests(TestCase):
         alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.alert_is_present()
         )
-        self.assertEqual(alert.text, "Successfully imported calendar!", f"Alert text does not match expected success message after importing valid ICS file, got: {alert.text}")
         alert.accept()
-        # Query the database to verify that the event from the ICS file was imported correctly
-        imported_event = Event.query.filter_by(title="Test Event").first()
-        self.assertIsNotNone(imported_event, "Imported event not found in database")
 
-    def test_import_invalid_ics_file(self):
-        webpage = WebpageActions(self.driver).login()
-        self.driver.get(localHost + "import")
-
-        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "fileInput"))
+        export_btn = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.ID, "exportBtn"))
         )
+        export_btn.click()
 
-        file_path = os.path.abspath("tests/fixtures/testInvalid.ics")
-        file_input.send_keys(file_path)
+        downloaded_file = None
 
-        self.driver.find_element(By.ID, "uploadBtn").click()
+        for _ in range(TIMEOUT_SECONDS):
+            files = os.listdir(download_dir)
+            ics_files = [f for f in files if f.endswith(".ics")]
+            if ics_files:
+                downloaded_file = os.path.join(download_dir, ics_files[0])
+                break
+            time.sleep(1)
+
+        self.assertIsNotNone(downloaded_file, "No ICS file was downloaded after exporting a valid ICS file")
+
+        with open(downloaded_file, "r", encoding="utf-8") as f:
+            ics_data = f.read()
+
+        self.assertIn("BEGIN:VCALENDAR", ics_data, "Exported ICS file does not contain BEGIN section")
+        self.assertIn("END:VCALENDAR", ics_data, "Exported ICS file does not contain END section")
+        self.assertIn("SUMMARY:Test Event", ics_data, "Exported ICS file does not contain Test Event")
+        self.assertIn("UID:", ics_data, "Exported ICS file does not contain UID for Event")
+
+    def test_export_empty_calendar_shows_error(self):
+        webpage = WebpageActions(self.driver).login("testuser2", "thisisanotherpassword").navigate_to_import()
+        # Test user 2 has no events
+        export_btn = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.ID, "exportBtn"))
+        )
+        export_btn.click()
 
         alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.alert_is_present()
         )
-        self.assertEqual(alert.text, "Error importing calendar: Invalid .ics file format.", f"Alert text does not match expected error message after importing invalid ICS file, got: {alert.text}")
+        
+        self.assertEqual(
+            alert.text,
+            "Error exporting calendar: No events to export",
+            f"Alert text does not match expected error message for exporting empty calendar, got: {alert.text}"
+        )
         alert.accept()
