@@ -204,7 +204,7 @@ class SeleniumTests(TestCase):
             EC.presence_of_element_located((By.CLASS_NAME, "alert"))
         )
         self.assertIsNotNone(alert_element, "Alert message not found after invalid signup")
-        self.assertEqual(alert_element.text, f"That username is already taken.", "Alert message text does not match duplicate username message, got: {alert_element.text}")
+        self.assertEqual(alert_element.text, "That username is already taken.", f"Alert message text does not match duplicate username message, got: {alert_element.text}")
 
         # Test duplicate emails
         webpage = WebpageActions(self.driver).signup(

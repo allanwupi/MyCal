@@ -7,7 +7,7 @@ from app.models import User, Friendship, Event, TaskStatus, create_test_data
 from app.routes import normalise_email, normalise_username, parse_iso_datetime, merge_busy_intervals
 
 
-class ModelTests(TestCase):
+class TestModels(TestCase):
     def setUp(self):
         testApp = create_app(TestConfig)
         self.app_context = testApp.app_context()
@@ -54,7 +54,7 @@ class ModelTests(TestCase):
         self.assertEqual(event_dict.get('extendedProps', {}).get('owner'), event.owner, "Event owner in extendedProps does not match Event owner")
 
 
-class HelperFunctionTests(TestCase):
+class TestHelperFunctions(TestCase):
     def test_normalise_email(self):
         email = "  TEST@EXAMPLE.COM  "
         result = normalise_email(email)
