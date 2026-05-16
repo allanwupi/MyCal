@@ -192,8 +192,7 @@ class SeleniumTests(TestCase):
         # successful signup should redirect to calendar page, so we wait for the calendar to be visible
         self.assertIsNotNone(wait_for_id(self.driver, "calendar"), "Calendar not found after successful signup, expected to be on calendar page")
     
-    def test_invalid_signup(self):
-        # Test duplicate usernames
+    def test_invalid_signup_duplicate_usernames(self):
         webpage = WebpageActions(self.driver).signup(
             email="testuser3@example.com",
             username="testuser",
@@ -206,7 +205,7 @@ class SeleniumTests(TestCase):
         self.assertIsNotNone(alert_element, "Alert message not found after invalid signup")
         self.assertEqual(alert_element.text, "That username is already taken.", f"Alert message text does not match duplicate username message, got: {alert_element.text}")
 
-        # Test duplicate emails
+    def test_invalid_signup_duplicate_emails(self):
         webpage = WebpageActions(self.driver).signup(
             email="testuser@example.com",
             username="testuser3",
@@ -219,8 +218,8 @@ class SeleniumTests(TestCase):
         )
         self.assertIsNotNone(alert_element, "Alert message not found after invalid signup")
         self.assertEqual(alert_element.text, f"An account with that email already exists.", "Alert message text does not match duplicate email message, got: {alert_element.text}")
-    
-        # Test mismatched passwords
+
+    def test_invalid_signup_mismatched_passwords(self):
         webpage = WebpageActions(self.driver).signup(
             email="testuser3@example.com",
             username="testuser3",
@@ -232,7 +231,6 @@ class SeleniumTests(TestCase):
         )
         self.assertIsNotNone(alert_element, "Alert message not found after invalid signup")
         self.assertEqual(alert_element.text, f"Passwords do not match.", "Alert message text does not match mismatched passwords message, got: {alert_element.text}")
-
 
     def test_navigation_links(self):
         # Tests that the sidebar navigation links work correctly and that the expected elements are present on each page after navigation
@@ -257,7 +255,7 @@ class SeleniumTests(TestCase):
         # unauthenticated access should redirect to login page, so we wait for an element on the login page to be present
         self.assertIsNotNone(wait_for_id(self.driver, "identifier"), "Identifier input not found after unauthenticated access, expected to be on login page")
 
-    def test_create_and_delete_calendar_event(self):
+    def test_create_calendar_event(self):
         webpage = WebpageActions(self.driver).login()
         add_event_button = wait_for_clickable_id(self.driver, "openEventModalBtn")
         add_event_button.click()
@@ -290,6 +288,14 @@ class SeleniumTests(TestCase):
         self.assertEqual(created_event.end.strftime("%Y-%m-%d %H:%M"), end.strftime("%Y-%m-%d %H:%M"), "Event end time in database does not match expected value")
         self.assertEqual(created_event.owner, "testuser@example.com", "Event owner email in database does not match expected value")
 
+    def test_delete_calendar_event(self):
+        # Directly create an event in the database with the current date and time
+        start = datetime.now(UTC)
+        end = start + timedelta(hours=1)
+        event_to_delete = Event(title="Selenium Test Event", start=start, end=end, owner="testuser@example.com")
+        db.session.add(event_to_delete)
+        db.session.commit()
+        webpage = WebpageActions(self.driver).login().navigate_to_calendar()
         # Attempt to delete the created event
         event_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'fc-event') and contains(., 'Selenium Test Event')]"))
@@ -339,7 +345,7 @@ class SeleniumTests(TestCase):
         self.assertEqual(alert.text, "End date/time must be after the start date/time.", f"Alert text does not match expected error message after specifying invalid end date/time for new event, got: {alert.text}")
         alert.accept()
 
-    def test_create_and_delete_todo_task(self):
+    def test_create_todo_task(self):
         webpage = WebpageActions(self.driver).login("testuser2", "thisisanotherpassword")
         webpage.navigate_to_todo()
         webpage.create_todo_task(title="Selenium Test Task", due_date=datetime(2026, 12, 31, 22, 0, 0))
@@ -354,7 +360,13 @@ class SeleniumTests(TestCase):
         self.assertEqual(created_task.end.strftime("%Y-%m-%d %H:%M"), "2026-12-31 22:00", "Event end time in database does not match expected value")
         self.assertEqual(created_task.owner, "testuser2@example.com", "Task owner email in database does not match expected value")
 
-        # Now attempt to delete the created task
+    def test_delete_todo_task(self):
+        webpage = WebpageActions(self.driver).login("testuser", "thisisatestpassword").navigate_to_todo()
+        # First event in list (chronological order) is "Assignment Due" which has status Completed. We will attempt to delete this task.
+        filter_by_completed_button = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[text()='Completed']"))
+        )
+        filter_by_completed_button.click() # Assignment Due is the only task with Completed status
         delete_button = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.element_to_be_clickable((By.CLASS_NAME, "delete-task"))
         )
@@ -362,7 +374,7 @@ class SeleniumTests(TestCase):
         WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.invisibility_of_element_located((By.CLASS_NAME, "task-item"))
         )
-        deleted_task = db.session.query(Event).filter_by(title="Selenium Test Task").first()
+        deleted_task = db.session.query(Event).filter_by(title="Assignment Due").first()
         self.assertIsNone(deleted_task, "Deleted todo task still found in database")
 
     def test_invalid_todo_task(self):
@@ -412,7 +424,7 @@ class SeleniumTests(TestCase):
         self.assertIsNotNone(updated_task, "Task to update not found in database")
         self.assertEqual(updated_task.taskStatus.value, "In Progress", "Task status in database does not match expected value after update")
 
-    def test_create_and_accept_friendship(self):
+    def test_create_friendship(self):
         webpage = WebpageActions(self.driver).login().navigate_to_friends()
         friend_search_input = wait_for_clickable_id(self.driver, "friendSearchInput")
         friend_search_input.send_keys("testuser2")
@@ -430,8 +442,12 @@ class SeleniumTests(TestCase):
         self.assertIsNotNone(friendship, "Friendship not found in database after sending friend request")
         self.assertEqual(friendship.status.value, "pending", f"Friendship status in database does not match 'pending' as expected after sending friend request, got {friendship.status.value}")
 
-        # Login as user 2 to accept the friend request
-        webpage.logout().login("testuser2", "thisisanotherpassword").navigate_to_friends()
+    def test_accept_friendship(self):
+        # For this test we will directly create a pending friendship in the database and then accept it through the frontend
+        pending_friendship = Friendship(requester_email="testuser@example.com", receiver_email="testuser2@example.com", status=FriendshipStatus.PENDING)
+        db.session.add(pending_friendship)
+        db.session.commit()
+        webpage = WebpageActions(self.driver).login("testuser2", "thisisanotherpassword").navigate_to_friends()
         # Wait for a friend request row div to appear containing the details of test user 1
         incoming_friend_request = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.XPATH, "//div[span[text()='@testuser (testuser@example.com)']]"))
