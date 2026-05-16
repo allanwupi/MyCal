@@ -14,8 +14,20 @@ import time
 
 localHost = "http://127.0.0.1:5000/"
 
+
 # Choose a reasonable timeout for waiting for elements to appear on the page during Selenium tests
 TIMEOUT_SECONDS = 10
+
+
+# Helper functions for Selenium tests to wait for elements to be present or clickable before interacting with them
+def wait_for_id(driver, element_id):
+    return WebDriverWait(driver, TIMEOUT_SECONDS).until(EC.presence_of_element_located((By.ID, element_id)))
+
+def wait_for_clickable_id(driver, element_id):
+    return WebDriverWait(driver, TIMEOUT_SECONDS).until(EC.element_to_be_clickable((By.ID, element_id)))
+
+def wait_for_alert(driver):
+    return WebDriverWait(driver, TIMEOUT_SECONDS).until(EC.alert_is_present())
 
 
 class ServerThread(threading.Thread):
@@ -36,9 +48,9 @@ class WebpageActions:
     
     def login(self, identifier="testuser", password="thisisatestpassword"):
         self.driver.get(localHost)
-        identifier_input = self.driver.find_element(By.ID, "identifier")
-        password_input = self.driver.find_element(By.ID, "login-password")
-        submit_button = self.driver.find_element(By.ID, "login-submit")
+        identifier_input = wait_for_id(self.driver, "identifier")
+        password_input = wait_for_id(self.driver, "login-password")
+        submit_button = wait_for_clickable_id(self.driver, "login-submit")
         identifier_input.send_keys(identifier)
         password_input.send_keys(password)
         self.driver.execute_script("arguments[0].scrollIntoView(true);", submit_button)
@@ -47,12 +59,12 @@ class WebpageActions:
 
     def signup(self, email, username, password, confirm_password):
         self.driver.get(localHost)
-        self.driver.find_element(By.ID, "signup-tab").click()
-        email_input = self.driver.find_element(By.ID, "email")
-        username_input = self.driver.find_element(By.ID, "username")
-        password_input = self.driver.find_element(By.ID, "signup-password")
-        confirm_password_input = self.driver.find_element(By.ID, "confirm-password")
-        submit_button = self.driver.find_element(By.ID, "signup-submit")
+        wait_for_clickable_id(self.driver, "signup-tab").click()
+        email_input = wait_for_id(self.driver, "email")
+        username_input = wait_for_id(self.driver, "username")
+        password_input = wait_for_id(self.driver, "signup-password")
+        confirm_password_input = wait_for_id(self.driver, "confirm-password")
+        submit_button = wait_for_clickable_id(self.driver, "signup-submit")
 
         email_input.send_keys(email)
         username_input.send_keys(username)
@@ -62,51 +74,41 @@ class WebpageActions:
         return self
     
     def logout(self):
-        self.driver.find_element(By.ID, "logout").click()
+        wait_for_clickable_id(self.driver, "logout").click()
         return self
     
     def navigate_to_calendar(self):
-        calendarLink = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "calendarLink"))
-        )
+        calendarLink = wait_for_clickable_id(self.driver, "calendarLink")
         calendarLink.click()
         return self
     
     def navigate_to_todo(self):
-        todoLink = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "todoLink"))
-        )
+        todoLink = wait_for_clickable_id(self.driver, "todoLink")
         todoLink.click()
         return self
     
     def navigate_to_friends(self):
-        friendsLink = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "friendsLink"))
-        )
+        friendsLink = wait_for_clickable_id(self.driver, "friendsLink")
         friendsLink.click()
         return self
     
     def navigate_to_import(self):
-        importLink = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "importLink"))
-        )
+        importLink = wait_for_clickable_id(self.driver, "importLink")
         importLink.click()
         return self
 
     def create_calendar_event(self, title, start=None, end=None, location="", description=""):
-        self.driver.find_element(By.ID, "openEventModalBtn").click()
+        wait_for_clickable_id(self.driver, "openEventModalBtn").click()
         if start is None:
             start = datetime.now(UTC)
         if end is None:
             end = start + timedelta(hours=1)
-        title_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "eventTitle"))
-        )
-        start_time_input = self.driver.find_element(By.ID, "eventStart")
-        end_time_input = self.driver.find_element(By.ID, "eventEnd")
-        event_location_input = self.driver.find_element(By.ID, "eventLocation")
-        event_description_input = self.driver.find_element(By.ID, "eventDescription")
-        save_event_button = self.driver.find_element(By.ID, "saveEventBtn")
+        title_input = wait_for_clickable_id(self.driver, "eventTitle")
+        start_time_input = wait_for_id(self.driver, "eventStart")
+        end_time_input = wait_for_id(self.driver, "eventEnd")
+        event_location_input = wait_for_id(self.driver, "eventLocation")
+        event_description_input = wait_for_id(self.driver, "eventDescription")
+        save_event_button = wait_for_clickable_id(self.driver, "saveEventBtn")
 
         title_input.send_keys(title)
         self.driver.execute_script(f"arguments[0].value = '{start.strftime('%Y-%m-%dT%H:%M:%S')}';", start_time_input)
@@ -118,11 +120,9 @@ class WebpageActions:
         return self
 
     def create_todo_task(self, title, due_date=None):
-        todo_title_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "todoInput"))
-        )
-        due_date_input = self.driver.find_element(By.ID, "todoDate")
-        add_todo_button = self.driver.find_element(By.ID, "addTodoBtn")
+        todo_title_input = wait_for_id(self.driver, "todoInput")
+        due_date_input = wait_for_id(self.driver, "todoDate")
+        add_todo_button = wait_for_clickable_id(self.driver, "addTodoBtn")
 
         if due_date is None:
             due_date = datetime.now(UTC)
@@ -168,10 +168,7 @@ class SeleniumTests(TestCase):
             password="thisisatestpassword"
         )
         # successful login should redirect to calendar page, so we wait for an element on the calendar page to be present
-        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "calendar"))
-        )
-        self.assertIsNotNone(self.driver.find_element(By.ID, "calendar"), "Calendar element not found after successful login, expected to be on calendar page")
+        self.assertIsNotNone(wait_for_id(self.driver, "calendar"), "Calendar element not found after successful login, expected to be on calendar page")
     
     def test_invalid_login(self):
         WebpageActions(self.driver).login(
@@ -193,10 +190,7 @@ class SeleniumTests(TestCase):
             confirm_password="testpassword"
         )
         # successful signup should redirect to calendar page, so we wait for the calendar to be visible
-        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "calendar"))
-        )
-        self.assertIsNotNone(self.driver.find_element(By.ID, "calendar"), "Calendar not found after successful signup, expected to be on calendar page")
+        self.assertIsNotNone(wait_for_id(self.driver, "calendar"), "Calendar not found after successful signup, expected to be on calendar page")
     
     def test_invalid_signup(self):
         # Test duplicate usernames
@@ -243,58 +237,37 @@ class SeleniumTests(TestCase):
     def test_navigation_links(self):
         # Tests that the sidebar navigation links work correctly and that the expected elements are present on each page after navigation
         webpage = WebpageActions(self.driver).login()
-        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "importLink"))
-        )
         webpage.navigate_to_import()
-        file_input_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "fileInput"))
-        )
+        file_input_element = wait_for_id(self.driver, "fileInput")
         self.assertIsNotNone(file_input_element, "File input not found after navigating to import page")
         webpage.navigate_to_friends()
-        friends_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "friendSearchInput"))
-        )
+        friends_element = wait_for_id(self.driver, "friendSearchInput")
         self.assertIsNotNone(friends_element, "Friend search input not found after navigating to friends page")
         webpage.navigate_to_todo()
-        todo_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "todoInput"))
-        )
+        todo_element = wait_for_id(self.driver, "todoInput")
         self.assertIsNotNone(todo_element, "Todo input not found after navigating to todo page")
         webpage.navigate_to_calendar()
-        calendar_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "calendar"))
-        )
+        calendar_element = wait_for_id(self.driver, "calendar")
         self.assertIsNotNone(calendar_element, "Calendar element not found after navigating to calendar page")
         webpage.logout()
-        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "identifier"))
-        )
-        self.assertIsNotNone(self.driver.find_element(By.ID, "identifier"), "Identifier input not found after logout, expected to be on login page")
+        self.assertIsNotNone(wait_for_id(self.driver, "identifier"), "Identifier input not found after logout, expected to be on login page")
 
     def test_unauthenticated_access(self):
         self.driver.get(localHost + "calendar")
         # unauthenticated access should redirect to login page, so we wait for an element on the login page to be present
-        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "identifier"))
-        )
-        self.assertIsNotNone(self.driver.find_element(By.ID, "identifier"), "Identifier input not found after unauthenticated access, expected to be on login page")
+        self.assertIsNotNone(wait_for_id(self.driver, "identifier"), "Identifier input not found after unauthenticated access, expected to be on login page")
 
     def test_create_and_delete_calendar_event(self):
         webpage = WebpageActions(self.driver).login()
-        add_event_button = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "openEventModalBtn"))
-        )
+        add_event_button = wait_for_clickable_id(self.driver, "openEventModalBtn")
         add_event_button.click()
-        title_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "eventTitle"))
-        )
+        title_input = wait_for_clickable_id(self.driver, "eventTitle")
         self.assertIsNotNone(title_input, "Event title input not found in event creation modal")
-        start_time_input = self.driver.find_element(By.ID, "eventStart")
-        end_time_input = self.driver.find_element(By.ID, "eventEnd")
-        event_location_input = self.driver.find_element(By.ID, "eventLocation")
-        event_description_input = self.driver.find_element(By.ID, "eventDescription")
-        save_event_button = self.driver.find_element(By.ID, "saveEventBtn")
+        start_time_input = wait_for_id(self.driver, "eventStart")
+        end_time_input = wait_for_id(self.driver, "eventEnd")
+        event_location_input = wait_for_id(self.driver, "eventLocation")
+        event_description_input = wait_for_id(self.driver, "eventDescription")
+        save_event_button = wait_for_clickable_id(self.driver, "saveEventBtn")
 
         title_input.send_keys("Selenium Test Event")
         start = datetime.now(UTC)
@@ -322,13 +295,9 @@ class SeleniumTests(TestCase):
             EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'fc-event') and contains(., 'Selenium Test Event')]"))
         )
         event_element.click()
-        delete_button = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "deleteEventBtn"))
-        )
+        delete_button = wait_for_clickable_id(self.driver, "deleteEventBtn")
         delete_button.click()
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
-        )
+        alert = wait_for_alert(self.driver)
         self.assertEqual(alert.text, "Warning: this event is going to be deleted. Are you sure you want to continue?", f"Alert text does not match expected confirmation message when deleting event, got: {alert.text}")
         alert.accept()
         WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
@@ -343,27 +312,22 @@ class SeleniumTests(TestCase):
 
     def test_invalid_calendar_event(self):
         webpage = WebpageActions(self.driver).login()
-        add_event_button = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "openEventModalBtn"))
-        )
+        add_event_button = wait_for_clickable_id(self.driver, "openEventModalBtn")
         add_event_button.click()
-        title_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "eventTitle"))
-        )
+        title_input = wait_for_clickable_id(self.driver, "eventTitle")
+        
         self.assertIsNotNone(
             title_input,
             "Event title input not found in event creation modal"
         )
-        start_time_input = self.driver.find_element(By.ID, "eventStart")
-        end_time_input = self.driver.find_element(By.ID, "eventEnd")
-        save_event_button = self.driver.find_element(By.ID, "saveEventBtn")
+        start_time_input = wait_for_id(self.driver, "eventStart")
+        end_time_input = wait_for_id(self.driver, "eventEnd")
+        save_event_button = wait_for_clickable_id(self.driver, "saveEventBtn")
 
         self.driver.execute_script("arguments[0].value = '2026-12-31T22:00:00';", start_time_input)
         save_event_button.click()
 
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
-        )
+        alert = wait_for_alert(self.driver)
         self.assertEqual(alert.text, "Please enter the event title, start and end dates/times.", f"Alert text does not match expected error message for not specifying required fields for new event, got: {alert.text}")
         alert.accept()
 
@@ -371,9 +335,7 @@ class SeleniumTests(TestCase):
         self.driver.execute_script("arguments[0].value = '2026-12-31T21:00:00';", end_time_input)
         save_event_button.click()
 
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
-        )
+        alert = wait_for_alert(self.driver)
         self.assertEqual(alert.text, "End date/time must be after the start date/time.", f"Alert text does not match expected error message after specifying invalid end date/time for new event, got: {alert.text}")
         alert.accept()
 
@@ -407,9 +369,7 @@ class SeleniumTests(TestCase):
         webpage = WebpageActions(self.driver).login("testuser2", "thisisanotherpassword")
         webpage.navigate_to_todo()
         webpage.create_todo_task(title="", due_date=datetime(2026, 12, 31, 22, 0, 0))
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
-        )
+        alert = wait_for_alert(self.driver)
         self.assertEqual(
             alert.text,
             "Please enter a task.",
@@ -417,15 +377,11 @@ class SeleniumTests(TestCase):
         )
         alert.accept()
         webpage.navigate_to_todo()
-        todo_title_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "todoInput"))
-        )
-        add_todo_button = self.driver.find_element(By.ID, "addTodoBtn")
+        todo_title_input = wait_for_clickable_id(self.driver, "todoInput")
+        add_todo_button = wait_for_clickable_id(self.driver, "addTodoBtn")
         todo_title_input.send_keys('Task')
         add_todo_button.click()
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
-        )
+        alert = wait_for_alert(self.driver)
         self.assertEqual(
             alert.text,
             "Please set a due date.",
@@ -458,9 +414,7 @@ class SeleniumTests(TestCase):
 
     def test_create_and_accept_friendship(self):
         webpage = WebpageActions(self.driver).login().navigate_to_friends()
-        friend_search_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "friendSearchInput"))
-        )
+        friend_search_input = wait_for_clickable_id(self.driver, "friendSearchInput")
         friend_search_input.send_keys("testuser2")
         add_friend_button = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.element_to_be_clickable((By.CLASS_NAME, "friends-small-btn"))
@@ -536,9 +490,7 @@ class SeleniumTests(TestCase):
         # Find the remove friend button and click it
         remove_friend_button = friend_row.find_element(By.CLASS_NAME, "friends-remove-btn")
         remove_friend_button.click()
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
-        )
+        alert = wait_for_alert(self.driver)
         self.assertEqual(alert.text, "Are you sure you want to remove this friend or request?", f"Alert text does not match expected confirmation message when removing friend, got: {alert.text}")
         alert.accept()
         # Wait until the friend is removed from the UI
@@ -552,18 +504,12 @@ class SeleniumTests(TestCase):
 
     def test_import_valid_ics_file(self):
         webpage = WebpageActions(self.driver).login().navigate_to_import()
-        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "fileInput"))
-        )
-
+        file_input = wait_for_id(self.driver, "fileInput")
         file_path = os.path.abspath("tests/fixtures/testValid.ics")
         file_input.send_keys(file_path)
+        wait_for_clickable_id(self.driver, "uploadBtn").click()
 
-        self.driver.find_element(By.ID, "uploadBtn").click()
-
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
-        )
+        alert = wait_for_alert(self.driver)
         self.assertEqual(
             alert.text,
             "Successfully imported calendar!",
@@ -576,17 +522,13 @@ class SeleniumTests(TestCase):
 
     def test_import_invalid_ics_frontend_rejection(self):
         webpage = WebpageActions(self.driver).login().navigate_to_import()
-        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "fileInput"))
-        )
-        # ICS file contains no events
+        file_input = wait_for_id(self.driver, "fileInput")
+        # ICS file contains no events and should be rejected by frontend validation with an appropriate error message
         file_path = os.path.abspath("tests/fixtures/testInvalidFrontendFail.ics")
         file_input.send_keys(file_path)
 
-        self.driver.find_element(By.ID, "uploadBtn").click()
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
-        )
+        wait_for_clickable_id(self.driver, "uploadBtn").click()
+        alert = wait_for_alert(self.driver)
         self.assertIn(
             "No events found in the .ics file",
             alert.text,
@@ -615,30 +557,25 @@ class SeleniumTests(TestCase):
         self.driver = webdriver.Chrome(options=new_options)
 
         webpage = WebpageActions(self.driver).login()
-        
-        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "calendar"))
-        )
-
+    
         self.driver.get(localHost + "import")
 
-        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "fileInput"))
-        )
+        file_input = wait_for_id(self.driver, "fileInput")
 
         file_path = os.path.abspath("tests/fixtures/testValid.ics")
         file_input.send_keys(file_path)
 
-        self.driver.find_element(By.ID, "uploadBtn").click()
+        wait_for_clickable_id(self.driver, "uploadBtn").click()
 
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
+        alert = wait_for_alert(self.driver)
+        self.assertEqual(
+            alert.text,
+            "Successfully imported calendar!",
+            f"Alert text does not match expected success message after importing valid ICS file, got: {alert.text}"
         )
         alert.accept()
 
-        export_btn = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "exportBtn"))
-        )
+        export_btn = wait_for_clickable_id(self.driver, "exportBtn")
         export_btn.click()
 
         downloaded_file = None
@@ -664,13 +601,9 @@ class SeleniumTests(TestCase):
     def test_export_empty_calendar_shows_error(self):
         webpage = WebpageActions(self.driver).login("testuser2", "thisisanotherpassword").navigate_to_import()
         # Test user 2 has no events
-        export_btn = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.element_to_be_clickable((By.ID, "exportBtn"))
-        )
+        export_btn = wait_for_clickable_id(self.driver, "exportBtn")
         export_btn.click()
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
-        )
+        alert = wait_for_alert(self.driver)
         self.assertEqual(
             alert.text,
             "Error exporting calendar: No events to export",
@@ -680,21 +613,16 @@ class SeleniumTests(TestCase):
         
     def test_import_invalid_ics_backend_rejection(self):
         webpage = WebpageActions(self.driver).login().navigate_to_import()
-        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "fileInput"))
-        )
+        file_input = wait_for_id(self.driver, "fileInput")
         # Path to INVALID ICS (dtstart not valid date)
         file_path = os.path.abspath("tests/fixtures/testInvalidBackendFail.ics")
         file_input.send_keys(file_path)
-        self.driver.find_element(By.ID, "uploadBtn").click()
+        wait_for_clickable_id(self.driver, "uploadBtn").click()
 
-        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.alert_is_present()
-        )
+        alert = wait_for_alert(self.driver)
         self.assertIn(
             "No valid events found in file",
             alert.text,
             f"Alert text does not match expected error message for no valid events in ICS file, got: {alert.text}"
         )
         alert.accept()
-
