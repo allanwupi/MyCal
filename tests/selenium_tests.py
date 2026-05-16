@@ -556,10 +556,8 @@ class SeleniumTests(TestCase):
         new_options.add_experimental_option("prefs", prefs)
         self.driver = webdriver.Chrome(options=new_options)
 
-        webpage = WebpageActions(self.driver).login()
-    
-        self.driver.get(localHost + "import")
-
+        webpage = WebpageActions(self.driver).login().navigate_to_import()
+        
         file_input = wait_for_id(self.driver, "fileInput")
 
         file_path = os.path.abspath("tests/fixtures/testValid.ics")
