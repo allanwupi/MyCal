@@ -37,15 +37,12 @@ class WebpageActions:
     def login(self, identifier="testuser", password="thisisatestpassword"):
         self.driver.get(localHost)
         identifier_input = self.driver.find_element(By.ID, "identifier")
-        password_input = self.driver.find_element(By.ID, "password")
-        submit_button = self.driver.find_element(By.ID, "submit")
+        password_input = self.driver.find_element(By.ID, "login-password")
+        submit_button = self.driver.find_element(By.ID, "login-submit")
         identifier_input.send_keys(identifier)
         password_input.send_keys(password)
         self.driver.execute_script("arguments[0].scrollIntoView(true);", submit_button)
         submit_button.click()
-        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.ID, "calendar"))
-        )
         return self
 
     def signup(self, email, username, password, confirm_password):
@@ -53,9 +50,9 @@ class WebpageActions:
         self.driver.find_element(By.ID, "signup-tab").click()
         email_input = self.driver.find_element(By.ID, "email")
         username_input = self.driver.find_element(By.ID, "username")
-        password_input = self.driver.find_element(By.ID, "signup_password")
-        confirm_password_input = self.driver.find_element(By.ID, "confirm_password")
-        submit_button = self.driver.find_element(By.ID, "submit_signup")
+        password_input = self.driver.find_element(By.ID, "signup-password")
+        confirm_password_input = self.driver.find_element(By.ID, "confirm-password")
+        submit_button = self.driver.find_element(By.ID, "signup-submit")
 
         email_input.send_keys(email)
         username_input.send_keys(username)
@@ -69,19 +66,31 @@ class WebpageActions:
         return self
     
     def navigate_to_calendar(self):
-        self.driver.find_element(By.ID, "calendarLink").click()
+        calendarLink = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.ID, "calendarLink"))
+        )
+        calendarLink.click()
         return self
     
     def navigate_to_todo(self):
-        self.driver.find_element(By.ID, "todoLink").click()
+        todoLink = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.ID, "todoLink"))
+        )
+        todoLink.click()
         return self
     
     def navigate_to_friends(self):
-        self.driver.find_element(By.ID, "friendsLink").click()
+        friendsLink = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.ID, "friendsLink"))
+        )
+        friendsLink.click()
         return self
     
     def navigate_to_import(self):
-        self.driver.find_element(By.ID, "importLink").click()
+        importLink = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.ID, "importLink"))
+        )
+        importLink.click()
         return self
 
     def create_calendar_event(self, title, start=None, end=None, location="", description=""):
@@ -154,14 +163,10 @@ class SeleniumTests(TestCase):
         return super().tearDown()
     
     def test_valid_login(self):
-        self.driver.get(localHost)
-        identifier_input = self.driver.find_element(By.ID, "identifier")
-        password_input = self.driver.find_element(By.ID, "password")
-        submit_button = self.driver.find_element(By.ID, "submit")
-        identifier_input.send_keys("testuser@example.com")
-        password_input.send_keys("thisisatestpassword")
-        self.driver.execute_script("arguments[0].scrollIntoView(true);", submit_button)
-        submit_button.click()
+        WebpageActions(self.driver).login(
+            identifier="testuser@example.com",
+            password="thisisatestpassword"
+        )
         # successful login should redirect to calendar page, so we wait for an element on the calendar page to be present
         WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.ID, "calendar"))
@@ -169,15 +174,10 @@ class SeleniumTests(TestCase):
         self.assertIsNotNone(self.driver.find_element(By.ID, "calendar"), "Calendar element not found after successful login, expected to be on calendar page")
     
     def test_invalid_login(self):
-        self.driver.get(localHost)
-        identifier_input = self.driver.find_element(By.ID, "identifier")
-        password_input = self.driver.find_element(By.ID, "password")
-        submit_button = self.driver.find_element(By.ID, "submit")
-        identifier_input.send_keys("invalid@example.com")
-        password_input.send_keys("invalidpassword")
-
-        self.driver.execute_script("arguments[0].scrollIntoView(true);", submit_button)
-        submit_button.click()
+        WebpageActions(self.driver).login(
+            identifier="testuser@example.com",
+            password="thisisnottherightpassword"
+        )
         # invalid login should flash an error message
         alert_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.CLASS_NAME, "alert"))
