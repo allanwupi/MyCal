@@ -2,11 +2,10 @@ from flask import flash, jsonify, redirect, render_template, request, url_for, m
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import or_
 from app import db
-from app.models import Event, TaskStatus, User
 from app.forms import LoginForm, SignupForm
+from app.models import Event, TaskStatus, User, Friendship, FriendshipStatus
 from datetime import UTC, datetime, time, timedelta
 from icalendar import Calendar, Event as ICalEvent
-from app.models import Event, TaskStatus, User, Friendship, FriendshipStatus
 from app.blueprints import main
 
 

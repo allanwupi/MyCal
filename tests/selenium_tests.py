@@ -192,7 +192,7 @@ class SeleniumTests(TestCase):
             password="testpassword",
             confirm_password="testpassword"
         )
-        # successful signup should redirect to login page, so we wait for an element on the login page to be present
+        # successful signup should redirect to calendar page, so we wait for the calendar to be visible
         WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.ID, "calendar"))
         )
@@ -210,7 +210,7 @@ class SeleniumTests(TestCase):
             EC.presence_of_element_located((By.CLASS_NAME, "alert"))
         )
         self.assertIsNotNone(alert_element, "Alert message not found after invalid signup")
-        self.assertEqual(alert_element.text, "That username is already taken.", "Alert message text does not match duplicate username message, got: {alert_element.text}")
+        self.assertEqual(alert_element.text, f"That username is already taken.", "Alert message text does not match duplicate username message, got: {alert_element.text}")
 
         # Test duplicate emails
         webpage = WebpageActions(self.driver).signup(
@@ -219,15 +219,12 @@ class SeleniumTests(TestCase):
             password="testpassword",
             confirm_password="testpassword"
         )
-        alert_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "alert"))
-        )
         # invalid signup should flash an error message
         alert_element = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.CLASS_NAME, "alert"))
         )
         self.assertIsNotNone(alert_element, "Alert message not found after invalid signup")
-        self.assertEqual(alert_element.text, "An account with that email already exists.", "Alert message text does not match duplicate email message, got: {alert_element.text}")
+        self.assertEqual(alert_element.text, f"An account with that email already exists.", "Alert message text does not match duplicate email message, got: {alert_element.text}")
     
         # Test mismatched passwords
         webpage = WebpageActions(self.driver).signup(
@@ -240,7 +237,7 @@ class SeleniumTests(TestCase):
             EC.presence_of_element_located((By.CLASS_NAME, "alert"))
         )
         self.assertIsNotNone(alert_element, "Alert message not found after invalid signup")
-        self.assertEqual(alert_element.text, "Passwords do not match.", "Alert message text does not match mismatched passwords message, got: {alert_element.text}")
+        self.assertEqual(alert_element.text, f"Passwords do not match.", "Alert message text does not match mismatched passwords message, got: {alert_element.text}")
 
 
     def test_navigation_links(self):
