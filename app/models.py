@@ -116,8 +116,8 @@ def create_test_data():
 
     task1 = Event(
         title='Assignment Due',
-        start=datetime(2026, 5, 25, 14, 0, 0),
-        end=datetime(2026, 5, 25, 14, 0, 0),
+        start=datetime(2026, 5, 15, 23, 0, 0),
+        end=datetime(2026, 5, 15, 23, 0, 0),
         backgroundColor='#6366f1',
         location='UWA Library',
         description='Complete and submit the final assignment.',
@@ -129,7 +129,7 @@ def create_test_data():
     task2 = Event(
         title='Study for Test',
         start=datetime(2026, 5, 20, 9, 0, 0),
-        end=datetime(2026, 5, 20, 9, 0, 0),
+        end=datetime(2026, 5, 20, 10, 0, 0),
         backgroundColor='#6366f1',
         location='Home',
         description='Review lecture notes and practice problems.',

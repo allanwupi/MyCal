@@ -365,7 +365,28 @@ class SeleniumTests(TestCase):
         alert.accept()
 
     def test_update_todo_task(self):
-        pass
+        webpage = WebpageActions(self.driver).login()
+        webpage.navigate_to_todo()
+        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "task-item"))
+        )
+        dropdown_button = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.CLASS_NAME, "dropdown-toggle"))
+        )
+        # First event in list (chronological order) is "Assignment Due" which has status Completed.
+        # We will change the status to "In Progress"
+        dropdown_button.click()
+        mark_in_progress_button = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.element_to_be_clickable((By.CLASS_NAME, "mark-in-progress"))
+        )
+        mark_in_progress_button.click()
+        WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.text_to_be_present_in_element((By.CLASS_NAME, "task-status-badge"), "In Progress")
+        )
+        # Check that the database was updated with the new task status
+        updated_task = Event.query.filter_by(title="Assignment Due").first()
+        self.assertIsNotNone(updated_task, "Task to update not found in database")
+        self.assertEqual(updated_task.taskStatus.value, "In Progress", "Task status in database does not match expected value after update")
 
     def test_create_friendship(self):
         pass
