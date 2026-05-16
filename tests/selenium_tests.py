@@ -400,24 +400,23 @@ class SeleniumTests(TestCase):
         imported_event = Event.query.filter_by(title="Test Event").first()
         self.assertIsNotNone(imported_event, "Imported event not found in database")
 
-    def test_import_invalid_ics_file(self):
+    def test_import_invalid_ics_frontend_rejection(self):
         webpage = WebpageActions(self.driver).login().navigate_to_import()
         file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.ID, "fileInput"))
         )
-
-        file_path = os.path.abspath("tests/fixtures/testInvalid.ics")
+        # ICS file contains no events
+        file_path = os.path.abspath("tests/fixtures/testInvalidFrontendFail.ics")
         file_input.send_keys(file_path)
 
         self.driver.find_element(By.ID, "uploadBtn").click()
-
         alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.alert_is_present()
         )
-        self.assertEqual(
-            alert.text, 
-            "Error importing calendar: Invalid .ics file format.",
-            f"Alert text does not match expected error message after importing invalid ICS file, got: {alert.text}"
+        self.assertIn(
+            "No events found in the .ics file",
+            alert.text,
+            f"Alert text does not match expected message for importing ICS file with no events, got: {alert.text}"
         )
         alert.accept()
 
@@ -479,7 +478,7 @@ class SeleniumTests(TestCase):
             time.sleep(1)
 
         self.assertIsNotNone(downloaded_file, "No ICS file was downloaded after exporting a valid ICS file")
-
+        
         with open(downloaded_file, "r", encoding="utf-8") as f:
             ics_data = f.read()
 
@@ -495,14 +494,33 @@ class SeleniumTests(TestCase):
             EC.element_to_be_clickable((By.ID, "exportBtn"))
         )
         export_btn.click()
-
         alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.alert_is_present()
         )
-        
         self.assertEqual(
             alert.text,
             "Error exporting calendar: No events to export",
             f"Alert text does not match expected error message for exporting empty calendar, got: {alert.text}"
         )
         alert.accept()
+        
+    def test_import_invalid_ics_backend_rejection(self):
+        webpage = WebpageActions(self.driver).login().navigate_to_import()
+        file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.ID, "fileInput"))
+        )
+        # Path to INVALID ICS (dtstart not valid date)
+        file_path = os.path.abspath("tests/fixtures/testInvalidBackendFail.ics")
+        file_input.send_keys(file_path)
+        self.driver.find_element(By.ID, "uploadBtn").click()
+
+        alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
+            EC.alert_is_present()
+        )
+        self.assertIn(
+            "No valid events found in file",
+            alert.text,
+            f"Alert text does not match expected error message for no valid events in ICS file, got: {alert.text}"
+        )
+        alert.accept()
+
