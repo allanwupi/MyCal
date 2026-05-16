@@ -406,7 +406,7 @@ class SeleniumTests(TestCase):
             EC.presence_of_element_located((By.ID, "fileInput"))
         )
         # ICS file contains no events
-        file_path = os.path.abspath("tests/fixtures/testInvalid(frontend_fail).ics")
+        file_path = os.path.abspath("tests/fixtures/testInvalidFrontendFail.ics")
         file_input.send_keys(file_path)
 
         self.driver.find_element(By.ID, "uploadBtn").click()
@@ -509,19 +509,14 @@ class SeleniumTests(TestCase):
         file_input = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.ID, "fileInput"))
         )
-        # path to INVALID ICS (dtstart not valid date)
-        file_path = os.path.abspath("tests/fixtures/testInvalid(Backend_fail).ics")
+        # Path to INVALID ICS (dtstart not valid date)
+        file_path = os.path.abspath("tests/fixtures/testInvalidBackendFail).ics")
         file_input.send_keys(file_path)
-
-        # submit upload
         self.driver.find_element(By.ID, "uploadBtn").click()
 
-        # wait for alert
         alert = WebDriverWait(self.driver, TIMEOUT_SECONDS).until(
             EC.alert_is_present()
         )
-
-        # ASSERT backend rejection message
         self.assertIn(
             "No valid events found in file",
             alert.text,
