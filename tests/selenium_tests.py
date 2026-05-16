@@ -510,7 +510,7 @@ class SeleniumTests(TestCase):
             EC.presence_of_element_located((By.ID, "fileInput"))
         )
         # Path to INVALID ICS (dtstart not valid date)
-        file_path = os.path.abspath("tests/fixtures/testInvalidBackendFail).ics")
+        file_path = os.path.abspath("tests/fixtures/testInvalidBackendFail.ics")
         file_input.send_keys(file_path)
         self.driver.find_element(By.ID, "uploadBtn").click()
 
